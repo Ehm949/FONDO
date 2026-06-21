@@ -93,6 +93,13 @@
   .range-btn:hover{ color:var(--ink); }
   .range-btn.active{ background:var(--accent); color:#1A1408; font-weight:600; }
   .chart-box{ position:relative; height:280px; margin:0 -4px; }
+  .pnl-summary{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:20px; }
+  .pnl-stat{ background:var(--bg-panel-raised); border:1px solid var(--line); padding:14px 16px; }
+  .pnl-stat .k{ font-size:10px; letter-spacing:0.07em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:7px; }
+  .pnl-stat .v{ font-family:var(--mono); font-size:19px; font-weight:500; }
+  .pnl-stat .v.up{ color:var(--up); }
+  .pnl-stat .v.down{ color:var(--down); }
+  .pnl-note{ font-size:12px; color:var(--ink-faint); line-height:1.6; margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
 
   /* Composition */
   .section-title{ font-family:var(--serif); font-size:16px; font-weight:500; margin:40px 0 18px; }
@@ -177,6 +184,16 @@
       </div>
     </div>
     <div class="chart-box"><canvas id="navChart" role="img" aria-label="Gráfica de la evolución histórica del NAV por acción del fondo"></canvas></div>
+  </div>
+
+  <div class="section-title">Desempeño de mercado del año</div>
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Ganancia / pérdida acumulada — 2026</div>
+    </div>
+    <div class="pnl-summary" id="pnlSummary"></div>
+    <div class="chart-box"><canvas id="pnlChart" role="img" aria-label="Gráfica de barras mostrando la ganancia o pérdida acumulada de mercado durante el año, ajustada por depósitos y retiros de capital"></canvas></div>
+    <div class="pnl-note">Calculado como la variación diaria del valor del portafolio, descontando los depósitos y retiros de capital — refleja solo el desempeño real de mercado, no el efecto de tus movimientos de dinero.</div>
   </div>
 
   <div class="section-title">Asignación por clase de activo</div>
@@ -278,12 +295,14 @@ function demoPortfolio(){
 
 function demoHistory(days){
   const out = [];
-  let v = 96.3;
+  let val = 295000;
   const today = new Date();
   for(let i=days; i>=0; i--){
-    v = v * (1 + (Math.random()*0.018 - 0.0075));
+    val = val * (1 + (Math.random()*0.018 - 0.0075));
+    let flow = 0;
+    if(Math.random() < 0.04){ flow = (Math.random()<0.5?-1:1) * Math.round(1000+Math.random()*8000); val += flow; }
     const d = new Date(today); d.setDate(d.getDate()-i);
-    out.push({ date: d, nav: v });
+    out.push({ date: d, nav: val/1000000, totalValue: val, flow });
   }
   return out;
 }
@@ -382,7 +401,7 @@ async function fetchPortfolioFromSheet(){
 }
 
 async function fetchHistoryFromSheet(){
-  // Hoja 3 — A=Fecha, B=NAV x acción, C=Cantidad de acciones, D=Valor total del portafolio
+  // Hoja 3 — A=Fecha, B=NAV x acción, C=Cantidad de acciones, D=Valor total del portafolio, E=Ingresos/Egresos del día
   const res = await fetch(CONFIG.HISTORY_CSV_URL);
   if(!res.ok) throw new Error("No se pudo leer Hoja 3");
   const rows = parseCSV(await res.text());
@@ -393,8 +412,35 @@ async function fetchHistoryFromSheet(){
     const d = parseDateDMY(r[0]);
     const nav = toNumber(r[1]);
     if(!d || isNaN(nav)) continue;
-    out.push({ date: d, nav });
+    const totalValue = toNumber(r[3]);
+    const flowRaw = toNumber(r[4]);
+    const flow = isNaN(flowRaw) ? 0 : flowRaw;
+    out.push({ date: d, nav, totalValue: isNaN(totalValue) ? null : totalValue, flow });
   }
+  return out;
+}
+
+/* ============================================================
+   GANANCIA / PÉRDIDA DE MERCADO (ajustada por flujos de capital)
+   Fórmula: PnL del día = Valor(hoy) - Valor(ayer) - Flujo(hoy)
+   Esto aísla el desempeño real de mercado, sin que los depósitos
+   o retiros del gestor se vean como ganancia o pérdida.
+   ============================================================ */
+const FUND_START_VALUE = 295359.10; // valor del portafolio el 31/12/2025, punto de partida del año
+const FUND_START_DATE = new Date(2025, 11, 31);
+
+function computeDailyPnL(history){
+  const sorted = [...history].sort((a,b)=>a.date-b.date);
+  let prevValue = FUND_START_VALUE;
+  let cumulative = 0;
+  const out = [];
+  sorted.forEach(h => {
+    if(h.totalValue == null) return;
+    const dailyPnL = h.totalValue - prevValue - (h.flow || 0);
+    cumulative += dailyPnL;
+    out.push({ date: h.date, dailyPnL, cumulative });
+    prevValue = h.totalValue;
+  });
   return out;
 }
 
@@ -410,6 +456,7 @@ const fmtInt = (n) => new Intl.NumberFormat("es-MX").format(Math.round(n));
    ============================================================ */
 let navChartInstance = null;
 let donutChartInstance = null;
+let pnlChartInstance = null;
 let fullHistory = [];
 
 function renderHero(portfolio, sharesOutstanding, prevNav){
@@ -530,6 +577,64 @@ function renderHistoryChart(history, rangeDays){
   });
 }
 
+function renderPnLChart(history){
+  const pnlSeries = computeDailyPnL(history);
+  if(pnlSeries.length === 0) return;
+
+  const labels = pnlSeries.map(p => p.date.toLocaleDateString("es-MX", { day:"numeric", month:"short" }));
+  const cumValues = pnlSeries.map(p => p.cumulative);
+  const dailyValues = pnlSeries.map(p => p.dailyPnL);
+
+  // Resumen: total acumulado, mejor día, peor día
+  const totalPnL = cumValues[cumValues.length-1];
+  const bestDay = pnlSeries.reduce((best,p)=> p.dailyPnL > best.dailyPnL ? p : best, pnlSeries[0]);
+  const worstDay = pnlSeries.reduce((worst,p)=> p.dailyPnL < worst.dailyPnL ? p : worst, pnlSeries[0]);
+
+  const summaryBox = document.getElementById("pnlSummary");
+  summaryBox.innerHTML = `
+    <div class="pnl-stat">
+      <div class="k">Acumulado del año</div>
+      <div class="v ${totalPnL>=0?'up':'down'}">${totalPnL>=0?'+':'-'}${fmtMXN(Math.abs(totalPnL))}</div>
+    </div>
+    <div class="pnl-stat">
+      <div class="k">Mejor día (${bestDay.date.toLocaleDateString("es-MX",{day:"numeric",month:"short"})})</div>
+      <div class="v up">+${fmtMXN(bestDay.dailyPnL)}</div>
+    </div>
+    <div class="pnl-stat">
+      <div class="k">Peor día (${worstDay.date.toLocaleDateString("es-MX",{day:"numeric",month:"short"})})</div>
+      <div class="v down">-${fmtMXN(Math.abs(worstDay.dailyPnL))}</div>
+    </div>
+  `;
+
+  const ctx = document.getElementById("pnlChart");
+  if(pnlChartInstance) pnlChartInstance.destroy();
+  pnlChartInstance = new Chart(ctx, {
+    type:"line",
+    data:{ labels, datasets:[{
+      data: cumValues,
+      borderColor: totalPnL>=0 ? "#6FA868" : "#C2685A",
+      backgroundColor: totalPnL>=0 ? "rgba(111,168,104,0.08)" : "rgba(194,104,90,0.08)",
+      fill:true,
+      tension:0.2,
+      pointRadius:0,
+      pointHoverRadius:4,
+      pointHoverBackgroundColor: totalPnL>=0 ? "#6FA868" : "#C2685A",
+      borderWidth:2,
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{
+        label:(c)=> "Acumulado: " + (c.raw>=0?"+":"") + "$" + c.raw.toFixed(2) + " MXN",
+        afterLabel:(c)=>{ const d = dailyValues[c.dataIndex]; return "Ese día: " + (d>=0?"+":"") + "$" + d.toFixed(2) + " MXN"; }
+      } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{ color:"#6B6E62", font:{family:"JetBrains Mono", size:10}, maxTicksLimit:8 } },
+        y:{ grid:{color:"rgba(232,230,218,0.06)"}, ticks:{ color:"#6B6E62", font:{family:"JetBrains Mono", size:10}, callback:(v)=>"$"+v.toFixed(0) } }
+      }
+    }
+  });
+}
+
 function showError(msg){
   const box = document.getElementById("errorBox");
   box.textContent = msg;
@@ -587,6 +692,7 @@ async function loadData(){
   lastNav = renderHero(portfolio, sharesOutstanding, prevNav);
   renderAllocation(portfolio);
   renderHistoryChart(fullHistory, 90);
+  renderPnLChart(fullHistory);
 }
 
 document.getElementById("rangeToggle").addEventListener("click", (e)=>{
