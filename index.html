@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fondo — NAV en tiempo real</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root{
+    --bg: #0E1410;
+    --bg-panel: #141C17;
+    --bg-panel-raised: #18221C;
+    --line: rgba(232, 230, 218, 0.10);
+    --line-strong: rgba(232, 230, 218, 0.20);
+    --ink: #ECEAE0;
+    --ink-dim: #9B9D8F;
+    --ink-faint: #6B6E62;
+    --accent: #C9A24B;
+    --accent-dim: #8A7536;
+    --up: #6FA868;
+    --down: #C2685A;
+    --serif: 'Fraunces', serif;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{background:var(--bg); color:var(--ink); font-family:var(--sans);}
+  body{ -webkit-font-smoothing:antialiased; }
+  ::selection{ background: var(--accent-dim); color:var(--ink); }
+
+  .wrap{ max-width:1080px; margin:0 auto; padding:0 28px 80px; }
+
+  /* Header */
+  header{
+    border-bottom:1px solid var(--line);
+    padding:28px 0 22px;
+    display:flex; align-items:flex-end; justify-content:space-between;
+    flex-wrap:wrap; gap:16px;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand-mark{
+    width:34px; height:34px; border:1px solid var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--serif); font-size:17px; color:var(--accent); font-weight:500;
+    flex-shrink:0;
+  }
+  .brand-name{ font-family:var(--serif); font-size:19px; font-weight:500; letter-spacing:0.01em; }
+  .brand-sub{ font-size:11px; color:var(--ink-faint); letter-spacing:0.08em; text-transform:uppercase; margin-top:1px; }
+  .live-tag{
+    display:flex; align-items:center; gap:7px;
+    font-family:var(--mono); font-size:11px; color:var(--ink-dim);
+    letter-spacing:0.04em; text-transform:uppercase;
+    border:1px solid var(--line-strong); padding:6px 11px;
+  }
+  .dot{ width:6px; height:6px; border-radius:50%; background:var(--up); flex-shrink:0; }
+  .dot.live{ animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+  .dot.stale{ background:var(--ink-faint); animation:none; }
+
+  /* Hero NAV */
+  .hero{ padding:48px 0 36px; border-bottom:1px solid var(--line); }
+  .hero-label{ font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:14px; }
+  .hero-row{ display:flex; align-items:flex-end; gap:22px; flex-wrap:wrap; }
+  .nav-figure{ font-family:var(--mono); font-size:clamp(40px,7vw,68px); font-weight:500; line-height:1; letter-spacing:-0.01em; }
+  .nav-currency{ font-size:0.4em; color:var(--ink-dim); margin-right:4px; vertical-align:2px; }
+  .change-pill{
+    display:flex; align-items:center; gap:6px;
+    font-family:var(--mono); font-size:14px; font-weight:500;
+    padding:7px 12px; border-radius:3px; margin-bottom:8px;
+  }
+  .change-pill.up{ background:rgba(111,168,104,0.12); color:var(--up); }
+  .change-pill.down{ background:rgba(194,104,90,0.12); color:var(--down); }
+  .hero-meta{ display:flex; gap:32px; margin-top:24px; flex-wrap:wrap; }
+  .meta-item .k{ font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:5px; }
+  .meta-item .v{ font-family:var(--mono); font-size:15px; color:var(--ink); }
+
+  /* Chart panel */
+  .panel{
+    background:var(--bg-panel); border:1px solid var(--line);
+    padding:24px 24px 16px; margin-top:32px;
+  }
+  .panel-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+  .panel-title{ font-family:var(--serif); font-size:16px; font-weight:500; }
+  .range-toggle{ display:flex; gap:2px; border:1px solid var(--line-strong); }
+  .range-btn{
+    font-family:var(--mono); font-size:11px; color:var(--ink-dim);
+    background:none; border:none; padding:6px 12px; cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  .range-btn:hover{ color:var(--ink); }
+  .range-btn.active{ background:var(--accent); color:#1A1408; font-weight:600; }
+  .chart-box{ position:relative; height:280px; margin:0 -4px; }
+
+  /* Composition */
+  .section-title{ font-family:var(--serif); font-size:16px; font-weight:500; margin:40px 0 18px; }
+  .alloc-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); }
+  .alloc-card{ background:var(--bg-panel); padding:18px 20px; }
+  .alloc-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
+  .alloc-name{ font-size:13.5px; color:var(--ink); }
+  .alloc-pct{ font-family:var(--mono); font-size:13px; color:var(--accent); font-weight:500; }
+  .alloc-bar-track{ height:3px; background:var(--line); margin-bottom:10px; overflow:hidden; }
+  .alloc-bar-fill{ height:100%; background:var(--accent); }
+  .alloc-bottom{ display:flex; justify-content:space-between; font-family:var(--mono); font-size:12px; color:var(--ink-dim); }
+  .alloc-bottom .chg.up{ color:var(--up); }
+  .alloc-bottom .chg.down{ color:var(--down); }
+
+  /* Donut + legend */
+  .composition-flex{ display:flex; gap:36px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+  .donut-box{ position:relative; width:200px; height:200px; flex-shrink:0; }
+  .donut-center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
+  .donut-center .n{ font-family:var(--mono); font-size:22px; font-weight:500; }
+  .donut-center .l{ font-size:10px; color:var(--ink-faint); letter-spacing:0.06em; text-transform:uppercase; margin-top:2px; }
+  .legend-list{ flex:1; min-width:220px; display:flex; flex-direction:column; gap:10px; }
+  .legend-row{ display:flex; align-items:center; gap:10px; font-size:13px; }
+  .legend-sw{ width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+  .legend-row .nm{ flex:1; color:var(--ink); }
+  .legend-row .pc{ font-family:var(--mono); color:var(--ink-dim); }
+
+  /* Footer / data source */
+  .footnote{
+    margin-top:48px; padding-top:20px; border-top:1px solid var(--line);
+    font-size:12px; color:var(--ink-faint); line-height:1.7;
+  }
+  .footnote b{ color:var(--ink-dim); font-weight:500; }
+  .error-box{
+    margin-top:32px; padding:16px 18px; border:1px solid rgba(194,104,90,0.35);
+    background:rgba(194,104,90,0.08); color:var(--down); font-size:13px; line-height:1.6;
+    display:none;
+  }
+  .error-box.show{ display:block; }
+  .error-box code{ font-family:var(--mono); font-size:12px; background:rgba(0,0,0,0.2); padding:1px 5px; }
+
+  @media (max-width:600px){
+    .hero-meta{ gap:20px; }
+    .composition-flex{ flex-direction:column; align-items:flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div>
+        <div class="brand-name">Fondo Multiactivo</div>
+        <div class="brand-sub">Valor de la acción · tiempo real</div>
+      </div>
+    </div>
+    <div class="live-tag"><span class="dot live" id="liveDot"></span><span id="liveText">Conectando…</span></div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-label">Valor neto por acción (NAV)</div>
+    <div class="hero-row">
+      <div class="nav-figure"><span class="nav-currency">MXN</span><span id="navValue">—</span></div>
+      <div class="change-pill" id="changePill"><span id="changeArrow">→</span><span id="changeText">—</span></div>
+    </div>
+    <div class="hero-meta">
+      <div class="meta-item"><div class="k">Valor total del portafolio</div><div class="v" id="totalValue">—</div></div>
+      <div class="meta-item"><div class="k">Acciones emitidas</div><div class="v" id="sharesOut">—</div></div>
+      <div class="meta-item"><div class="k">Última actualización</div><div class="v" id="lastUpdate">—</div></div>
+    </div>
+  </section>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Evolución del NAV</div>
+      <div class="range-toggle" id="rangeToggle">
+        <button class="range-btn" data-range="30">1M</button>
+        <button class="range-btn active" data-range="90">3M</button>
+        <button class="range-btn" data-range="365">1A</button>
+        <button class="range-btn" data-range="all">Todo</button>
+      </div>
+    </div>
+    <div class="chart-box"><canvas id="navChart" role="img" aria-label="Gráfica de la evolución histórica del NAV por acción del fondo"></canvas></div>
+  </div>
+
+  <div class="section-title">Composición del portafolio</div>
+  <div class="panel">
+    <div class="composition-flex">
+      <div class="donut-box">
+        <canvas id="donutChart" role="img" aria-label="Gráfica de dona mostrando la asignación porcentual del portafolio por clase de activo"></canvas>
+        <div class="donut-center"><div class="n">7</div><div class="l">Activos</div></div>
+      </div>
+      <div class="legend-list" id="legendList"></div>
+    </div>
+  </div>
+
+  <div class="alloc-grid" id="allocGrid"></div>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div class="footnote">
+    <b>Fuente de datos:</b> precios de mercado vía Google Finance, gestionados en hoja de cálculo del administrador del fondo (Hoja 1: configuración general; Hoja 2: detalle de posiciones; Hoja 3: histórico de NAV) y publicados a esta página. CETES y FIBRA Nova se actualizan manualmente. El NAV por acción se calcula como Valor total del portafolio ÷ Acciones emitidas. Esta página es informativa para accionistas del fondo y no constituye una oferta pública de venta de valores.
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN — edita esta sección con tus datos reales
+   ============================================================ */
+const CONFIG = {
+  // URL CSV publicada de "Hoja 2" (detalle de posiciones: ticker, nombre, cantidad, ..., valor MXN)
+  POSITIONS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=2077970112&single=true&output=csv",
+  // URL CSV publicada de "Hoja 1" (acciones emitidas, monto cetes, tipo de cambio)
+  CONFIG_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=0&single=true&output=csv",
+  // URL CSV publicada de "Hoja 3" (histórico: fecha, NAV, acciones circulando, valor total)
+  HISTORY_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=1974841137&single=true&output=csv",
+  REFRESH_SECONDS: 60
+};
+
+const DEMO_MODE = !CONFIG.POSITIONS_CSV_URL;
+
+// Clasificación de cada ticker en una categoría, para agrupar visualmente.
+// Si aparece un ticker nuevo en tu hoja que no está aquí, cae en "Otros" automáticamente.
+const CATEGORY_MAP = {
+  "BTCMX": "Cripto", "Ether": "Cripto", "Solana": "Cripto",
+  "Cetes": "Renta fija",
+  "VTI": "Renta variable EE.UU.", "VUAAN": "Renta variable EE.UU.", "IVVPESOISHRS": "Renta variable EE.UU.", "VIG": "Renta variable EE.UU.",
+  "VWO": "Mercados emergentes",
+  "VEA": "Mercados desarrollados",
+  "VNQ": "REITs EE.UU.",
+  "FUNO11": "FIBRAs México", "DANHOS13": "FIBRAs México", "FNOVA17": "FIBRAs México",
+  "FIBRAPL14": "FIBRAs México", "FIBRAMQ12": "FIBRAs México", "FMTY14": "FIBRAs México",
+  "FCFE18": "FIBRAs México", "FSHOP13": "FIBRAs México",
+};
+const CATEGORY_COLORS = {
+  "Cripto": "#C9A24B",
+  "Renta fija": "#6F8F8A",
+  "Renta variable EE.UU.": "#8A7CC0",
+  "Mercados emergentes": "#6FA868",
+  "Mercados desarrollados": "#9B9D8F",
+  "REITs EE.UU.": "#B59A6E",
+  "FIBRAs México": "#C2685A",
+  "Efectivo disponible": "#7A8B99",
+  "Otros": "#5C5E54",
+};
+
+/* ============================================================
+   DATOS DE DEMOSTRACIÓN
+   Se muestran mientras no haya una URL de Google Sheet conectada.
+   En cuanto pegues POSITIONS_CSV_URL arriba, esto se ignora.
+   Replica la forma real de tu Hoja 2: una fila por posición individual.
+   ============================================================ */
+const DEMO_POSITIONS = [
+  { ticker:"VNQ", name:"Vanguard Real Estate Index Fund ETF", qty:9, valueMXN:14917.65 },
+  { ticker:"VTI", name:"Vanguard Total Stock Market Index Fund ETF", qty:1, valueMXN:6417.59 },
+  { ticker:"VEA", name:"Vanguard Tax Managed Fund FTSE Developed Markets ETF", qty:35, valueMXN:43898.35 },
+  { ticker:"VWO", name:"Vanguard Emerging Markets Stock Index Fund ETF", qty:14, valueMXN:14757.03 },
+  { ticker:"VUAAN", name:"Vanguard S&P 500 UCITS ETF USD Acc", qty:17, valueMXN:42767.92 },
+  { ticker:"FUNO11", name:"Fideicomiso Irrevocable No F/1401", qty:333, valueMXN:9666.99 },
+  { ticker:"DANHOS13", name:"Concentradora Fibra Danhos SA de CV", qty:200, valueMXN:5730 },
+  { ticker:"FNOVA17", name:"FIBRA NOVA", qty:37, valueMXN:1648.35 },
+  { ticker:"FIBRAPL14", name:"Prologis Property Mexico SA de CV", qty:128, valueMXN:10228.48 },
+  { ticker:"FIBRAMQ12", name:"Fibra Macquarie Mexico", qty:0, valueMXN:0 },
+  { ticker:"FMTY14", name:"Fibra Mty SAPI de CV", qty:941, valueMXN:13221.05 },
+  { ticker:"IVVPESOISHRS", name:"iShares S&P 500 Peso Hedged TRAC", qty:117, valueMXN:18018 },
+  { ticker:"BTCMX", name:"Bitcoin", qty:0.0152605, valueMXN:16970.08 },
+  { ticker:"Ether", name:"Etherium", qty:0.0194654, valueMXN:585.09 },
+  { ticker:"FSHOP13", name:"Fideicomiso Irrevocable 6206", qty:57, valueMXN:660.06 },
+  { ticker:"Cetes", name:"Cetes", qty:null, valueMXN:90673.66 },
+  { ticker:"Solana", name:"Solana", qty:0.15187, valueMXN:195.70 },
+  { ticker:"VIG", name:"Vanguard Dividend Appreciation Index Fund ETF", qty:1, valueMXN:4079.44 },
+];
+
+function demoPortfolio(){
+  return DEMO_POSITIONS.map(p => ({
+    ticker: p.ticker, name: p.name, qty: p.qty,
+    valueMXN: p.valueMXN * (0.985 + Math.random()*0.03),
+    category: CATEGORY_MAP[p.ticker] || "Otros",
+  }));
+}
+
+function demoHistory(days){
+  const out = [];
+  let v = 96.3;
+  const today = new Date();
+  for(let i=days; i>=0; i--){
+    v = v * (1 + (Math.random()*0.018 - 0.0075));
+    const d = new Date(today); d.setDate(d.getDate()-i);
+    out.push({ date: d, nav: v });
+  }
+  return out;
+}
+
+/* ============================================================
+   PARSEO DE CSV DE GOOGLE SHEETS
+   ============================================================ */
+function parseCSV(text){
+  const lines = text.trim().split("\n").map(l => {
+    // separa por comas respetando comillas
+    const out = []; let cur = ""; let inQ = false;
+    for(const ch of l){
+      if(ch === '"'){ inQ = !inQ; continue; }
+      if(ch === "," && !inQ){ out.push(cur); cur = ""; continue; }
+      cur += ch;
+    }
+    out.push(cur);
+    return out.map(c => c.trim());
+  });
+  return lines;
+}
+function toNumber(s){
+  if(s == null) return NaN;
+  const clean = String(s).replace(/[^0-9.\-]/g,"");
+  return clean === "" ? NaN : parseFloat(clean);
+}
+function parseDateDMY(s){
+  // Espera "DD/MM/YYYY" (formato de Hoja 3). Cae a Date() nativo si no matchea.
+  const m = String(s).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m) return new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]));
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+async function fetchConfigFromSheet(){
+  // Hoja 1 — fila por fila: A1 etiqueta, B1 valor. Esperado: acciones emitidas (fila1), cetes monto (fila2), tipo cambio (fila3)
+  const res = await fetch(CONFIG.CONFIG_CSV_URL);
+  if(!res.ok) throw new Error("No se pudo leer Hoja 1 (HTTP " + res.status + ")");
+  const rows = parseCSV(await res.text());
+  let sharesOutstanding = null, fx = null;
+  rows.forEach(r => {
+    const label = (r[0]||"").toLowerCase();
+    const val = toNumber(r[1]);
+    if(label.includes("accion")) sharesOutstanding = val;
+    if(label.includes("cambio")) fx = val;
+  });
+  return { sharesOutstanding, fx };
+}
+
+async function fetchPortfolioFromSheet(){
+  // Hoja 2 — A=Ticker, B=Nombre, C=Cantidad, ..., G=Cantidad total del activo en MXN
+  // Fila 1: precio dólar suelto. Fila 2: encabezados. Filas 3+: posiciones. Última fila: total (SUM).
+  const res = await fetch(CONFIG.POSITIONS_CSV_URL);
+  if(!res.ok) throw new Error("No se pudo leer Hoja 2 (HTTP " + res.status + ")");
+  const rows = parseCSV(await res.text());
+  const items = [];
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    const ticker = (r[0]||"").trim();
+    if(!ticker) continue;
+    const nameRaw = (r[1]||"").trim();
+    if(ticker.toLowerCase()==="tiket") continue; // fila de encabezados
+
+    // Caso especial: fila de efectivo libre, marcada con ticker "-" y nombre "Cantidad sin inversion"
+    if(ticker === "-" && /sin inversion/i.test(nameRaw)){
+      const cashMXN = toNumber(r[6]);
+      if(!isNaN(cashMXN) && cashMXN !== 0){
+        items.push({ ticker:"CASH", name:"Efectivo disponible", qty:null, valueMXN:cashMXN, category:"Efectivo disponible" });
+      }
+      continue;
+    }
+    if(ticker === "-") continue;
+
+    const name = nameRaw || ticker;
+    const qty = toNumber(r[2]);
+    const valueMXN = toNumber(r[6]); // columna G = índice 6
+    if(isNaN(valueMXN)) continue;
+    items.push({
+      ticker, name, qty: isNaN(qty) ? null : qty, valueMXN,
+      category: CATEGORY_MAP[ticker] || "Otros",
+    });
+  }
+  return items;
+}
+
+async function fetchHistoryFromSheet(){
+  // Hoja 3 — A=Fecha, B=NAV x acción, C=Cantidad de acciones, D=Valor total del portafolio
+  const res = await fetch(CONFIG.HISTORY_CSV_URL);
+  if(!res.ok) throw new Error("No se pudo leer Hoja 3");
+  const rows = parseCSV(await res.text());
+  const out = [];
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    if(!r[0] || !r[1]) continue;
+    const d = parseDateDMY(r[0]);
+    const nav = toNumber(r[1]);
+    if(!d || isNaN(nav)) continue;
+    out.push({ date: d, nav });
+  }
+  return out;
+}
+
+/* ============================================================
+   FORMATO
+   ============================================================ */
+const fmtMXN = (n) => new Intl.NumberFormat("es-MX", { minimumFractionDigits:2, maximumFractionDigits:2 }).format(n);
+const fmtMXNCompact = (n) => "$" + new Intl.NumberFormat("es-MX", { notation:"compact", maximumFractionDigits:1 }).format(n) + " MXN";
+const fmtInt = (n) => new Intl.NumberFormat("es-MX").format(Math.round(n));
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+let navChartInstance = null;
+let donutChartInstance = null;
+let fullHistory = [];
+
+function renderHero(portfolio, sharesOutstanding, prevNav){
+  const totalMXN = portfolio.reduce((s,a)=>s+a.valueMXN,0);
+  const nav = totalMXN / sharesOutstanding;
+
+  document.getElementById("navValue").textContent = fmtMXN(nav);
+  document.getElementById("totalValue").textContent = fmtMXNCompact(totalMXN);
+  document.getElementById("sharesOut").textContent = fmtInt(sharesOutstanding);
+  document.getElementById("lastUpdate").textContent = new Date().toLocaleString("es-MX", { dateStyle:"medium", timeStyle:"short" });
+
+  const pill = document.getElementById("changePill");
+  const arrow = document.getElementById("changeArrow");
+  const txt = document.getElementById("changeText");
+  if(prevNav){
+    const chg = ((nav - prevNav)/prevNav)*100;
+    pill.className = "change-pill " + (chg>=0 ? "up":"down");
+    arrow.textContent = chg>=0 ? "▲" : "▼";
+    txt.textContent = (chg>=0?"+":"") + chg.toFixed(2) + "% hoy";
+  } else {
+    pill.className = "change-pill up";
+    arrow.textContent = "—";
+    txt.textContent = "sin comparativo";
+  }
+  return nav;
+}
+
+function groupByCategory(portfolio){
+  const groups = {};
+  portfolio.forEach(p => {
+    if(!groups[p.category]) groups[p.category] = { name: p.category, color: CATEGORY_COLORS[p.category] || CATEGORY_COLORS["Otros"], valueMXN: 0, positions: [] };
+    groups[p.category].valueMXN += p.valueMXN;
+    groups[p.category].positions.push(p);
+  });
+  return Object.values(groups).sort((a,b)=>b.valueMXN-a.valueMXN);
+}
+
+function renderAllocation(portfolio){
+  const totalMXN = portfolio.reduce((s,a)=>s+a.valueMXN,0);
+  const categories = groupByCategory(portfolio);
+
+  // Tarjetas por categoría
+  const grid = document.getElementById("allocGrid");
+  grid.innerHTML = "";
+  categories.forEach(c => {
+    const actualPct = (c.valueMXN/totalMXN)*100;
+    const card = document.createElement("div");
+    card.className = "alloc-card";
+    card.innerHTML = `
+      <div class="alloc-top">
+        <div class="alloc-name">${c.name}</div>
+        <div class="alloc-pct">${actualPct.toFixed(1)}%</div>
+      </div>
+      <div class="alloc-bar-track"><div class="alloc-bar-fill" style="width:${Math.min(actualPct/35*100,100)}%; background:${c.color}"></div></div>
+      <div class="alloc-bottom">
+        <span>${fmtMXNCompact(c.valueMXN)}</span>
+        <span>${c.positions.length} posición${c.positions.length===1?"":"es"}</span>
+      </div>`;
+    grid.appendChild(card);
+  });
+
+  // Legend
+  const legend = document.getElementById("legendList");
+  legend.innerHTML = "";
+  categories.forEach(c => {
+    const actualPct = (c.valueMXN/totalMXN)*100;
+    const row = document.createElement("div");
+    row.className = "legend-row";
+    row.innerHTML = `<span class="legend-sw" style="background:${c.color}"></span><span class="nm">${c.name}</span><span class="pc">${actualPct.toFixed(1)}%</span>`;
+    legend.appendChild(row);
+  });
+
+  document.querySelector(".donut-center .n").textContent = categories.length;
+
+  // Donut chart por categoría
+  const ctx = document.getElementById("donutChart");
+  const data = { labels: categories.map(c=>c.name), datasets:[{ data: categories.map(c=>c.valueMXN), backgroundColor: categories.map(c=>c.color), borderWidth:2, borderColor:"#141C17" }] };
+  if(donutChartInstance) donutChartInstance.destroy();
+  donutChartInstance = new Chart(ctx, {
+    type:"doughnut",
+    data,
+    options:{ responsive:true, maintainAspectRatio:true, cutout:"72%", plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: (c)=> c.label + ": " + ((c.raw/totalMXN)*100).toFixed(1) + "%" } } } }
+  });
+
+  // Detalle de posiciones individuales
+  renderPositionsTable(portfolio, totalMXN);
+}
+
+function renderPositionsTable(portfolio, totalMXN){
+  let box = document.getElementById("positionsBox");
+  if(!box){
+    box = document.createElement("div");
+    box.id = "positionsBox";
+    box.className = "panel";
+    box.style.marginTop = "32px";
+    document.querySelector(".alloc-grid").insertAdjacentElement("afterend", box);
+  }
+  const sorted = [...portfolio].sort((a,b)=>b.valueMXN-a.valueMXN);
+  box.innerHTML = `<div class="panel-title" style="margin-bottom:14px;">Detalle de posiciones</div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <thead><tr style="border-bottom:1px solid var(--line-strong);">
+        <th style="text-align:left; padding:8px 10px; color:var(--ink-faint); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:0.04em;">Ticker</th>
+        <th style="text-align:left; padding:8px 10px; color:var(--ink-faint); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:0.04em;">Nombre</th>
+        <th style="text-align:right; padding:8px 10px; color:var(--ink-faint); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:0.04em;">Cantidad</th>
+        <th style="text-align:right; padding:8px 10px; color:var(--ink-faint); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:0.04em;">Valor MXN</th>
+        <th style="text-align:right; padding:8px 10px; color:var(--ink-faint); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:0.04em;">% del fondo</th>
+      </tr></thead>
+      <tbody>
+        ${sorted.map(p => `<tr style="border-bottom:1px solid var(--line);">
+          <td style="padding:9px 10px; font-family:var(--mono); color:var(--accent);">${p.ticker}</td>
+          <td style="padding:9px 10px; color:var(--ink-dim);">${p.name}</td>
+          <td style="padding:9px 10px; text-align:right; font-family:var(--mono); color:var(--ink-dim);">${p.qty==null ? "—" : p.qty.toLocaleString("es-MX",{maximumFractionDigits:4})}</td>
+          <td style="padding:9px 10px; text-align:right; font-family:var(--mono);">${fmtMXN(p.valueMXN)}</td>
+          <td style="padding:9px 10px; text-align:right; font-family:var(--mono); color:var(--ink-dim);">${((p.valueMXN/totalMXN)*100).toFixed(1)}%</td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+    </div>`;
+}
+
+function renderHistoryChart(history, rangeDays){
+  let filtered = history;
+  if(rangeDays !== "all"){
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - rangeDays);
+    filtered = history.filter(h => h.date >= cutoff);
+  }
+  const ctx = document.getElementById("navChart");
+  const labels = filtered.map(h => h.date.toLocaleDateString("es-MX", { day:"numeric", month:"short" }));
+  const values = filtered.map(h => h.nav);
+
+  if(navChartInstance) navChartInstance.destroy();
+  navChartInstance = new Chart(ctx, {
+    type:"line",
+    data:{ labels, datasets:[{
+      data: values,
+      borderColor:"#C9A24B",
+      backgroundColor:"rgba(201,162,75,0.08)",
+      fill:true,
+      tension:0.25,
+      pointRadius:0,
+      pointHoverRadius:4,
+      pointHoverBackgroundColor:"#C9A24B",
+      borderWidth:2,
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(c)=> "NAV: $" + c.raw.toFixed(2) + " MXN" } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{ color:"#6B6E62", font:{family:"JetBrains Mono", size:10}, maxTicksLimit:8 } },
+        y:{ grid:{color:"rgba(232,230,218,0.06)"}, ticks:{ color:"#6B6E62", font:{family:"JetBrains Mono", size:10}, callback:(v)=>"$"+v.toFixed(0) } }
+      }
+    }
+  });
+}
+
+function showError(msg){
+  const box = document.getElementById("errorBox");
+  box.textContent = msg;
+  box.classList.add("show");
+}
+
+function setLive(ok, isDemo){
+  const dot = document.getElementById("liveDot");
+  const txt = document.getElementById("liveText");
+  if(isDemo){
+    dot.className = "dot stale";
+    txt.textContent = "Modo demostración";
+  } else if(ok){
+    dot.className = "dot live";
+    txt.textContent = "En vivo";
+  } else {
+    dot.className = "dot stale";
+    txt.textContent = "Sin conexión";
+  }
+}
+
+/* ============================================================
+   CARGA PRINCIPAL
+   ============================================================ */
+let lastNav = null;
+
+async function loadData(){
+  let portfolio, history, sharesOutstanding = 1000000;
+
+  if(DEMO_MODE){
+    portfolio = demoPortfolio();
+    history = demoHistory(365);
+    setLive(false, true);
+    showError("Esta página está en modo demostración con datos simulados de ejemplo (réplica de tu estructura real). Para conectar tus datos: pega las 3 URLs CSV publicadas de Hoja 1, Hoja 2 y Hoja 3 en las variables CONFIG.CONFIG_CSV_URL, CONFIG.POSITIONS_CSV_URL y CONFIG.HISTORY_CSV_URL dentro del código.");
+  } else {
+    try{
+      const [posData, cfgData] = await Promise.all([
+        fetchPortfolioFromSheet(),
+        CONFIG.CONFIG_CSV_URL ? fetchConfigFromSheet().catch(()=>({sharesOutstanding:null,fx:null})) : Promise.resolve({sharesOutstanding:null,fx:null})
+      ]);
+      portfolio = posData;
+      if(cfgData.sharesOutstanding) sharesOutstanding = cfgData.sharesOutstanding;
+      try{ history = CONFIG.HISTORY_CSV_URL ? await fetchHistoryFromSheet() : demoHistory(90); }catch(e){ history = demoHistory(90); }
+      setLive(true, false);
+    }catch(e){
+      portfolio = demoPortfolio();
+      history = demoHistory(365);
+      setLive(false, false);
+      showError("No se pudo conectar al Google Sheet: " + e.message + ". Mostrando datos de demostración mientras tanto.");
+    }
+  }
+
+  fullHistory = history;
+  const prevNav = history.length>1 ? history[history.length-2].nav : null;
+  lastNav = renderHero(portfolio, sharesOutstanding, prevNav);
+  renderAllocation(portfolio);
+  renderHistoryChart(fullHistory, 90);
+}
+
+document.getElementById("rangeToggle").addEventListener("click", (e)=>{
+  if(e.target.tagName !== "BUTTON") return;
+  document.querySelectorAll(".range-btn").forEach(b=>b.classList.remove("active"));
+  e.target.classList.add("active");
+  const r = e.target.dataset.range;
+  renderHistoryChart(fullHistory, r==="all"?"all":parseInt(r));
+});
+
+loadData();
+setInterval(loadData, CONFIG.REFRESH_SECONDS * 1000);
+</script>
+</body>
+</html>
