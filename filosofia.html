@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Filosofía de Inversión — Fondo Marea Internacional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ──────────────────────────────────── */
+:root {
+  --void:    #080A07;
+  --deep:    #0F1410;
+  --surface: #161D14;
+  --lift:    #1E2A1B;
+  --ink:     #E8E4D8;
+  --ink-mid: #A8A49A;
+  --ink-dim: #6A6860;
+  --rule:    rgba(232,228,216,.10);
+  --rule-md: rgba(232,228,216,.18);
+  --green:   #4D7A2A;
+  --green-lt:#8AB96A;
+  --gold:    #C9A44A;
+  --serif:   'Cormorant Garamond', Georgia, serif;
+  --sans:    'DM Sans', system-ui, sans-serif;
+  --mono:    'JetBrains Mono', monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;font-size:16px;}
+body{background:var(--void);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+::selection{background:var(--green);color:#fff;}
+
+/* ── NAV ─────────────────────────────────────── */
+nav {
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 48px;
+  background:linear-gradient(to bottom,rgba(8,10,7,.95),transparent);
+  backdrop-filter:blur(2px);
+}
+.nav-brand{font-family:var(--serif);font-size:16px;font-weight:500;letter-spacing:.04em;color:var(--ink);}
+.nav-links{display:flex;gap:28px;list-style:none;}
+.nav-links a{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);text-decoration:none;transition:color .2s;}
+.nav-links a:hover{color:var(--ink);}
+@media(max-width:640px){nav{padding:16px 24px;}.nav-links{gap:16px;}}
+
+/* ── HERO ────────────────────────────────────── */
+.hero{
+  min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;
+  padding:0 48px 80px;position:relative;overflow:hidden;
+}
+.hero-bg{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 80%, rgba(77,122,42,.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 80% 20%, rgba(201,164,74,.05) 0%, transparent 50%);
+}
+.hero-line{
+  position:absolute;top:0;left:48px;bottom:0;width:1px;
+  background:linear-gradient(to bottom,transparent,var(--green) 30%,var(--rule) 70%,transparent);
+  opacity:.4;
+}
+.hero-eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--green-lt);margin-bottom:28px;
+  display:flex;align-items:center;gap:14px;
+}
+.hero-eyebrow::before{content:'';width:32px;height:1px;background:var(--green-lt);}
+.hero-headline{
+  font-family:var(--serif);font-size:clamp(48px,7vw,96px);
+  font-weight:300;line-height:1.0;letter-spacing:-.01em;
+  color:var(--ink);max-width:800px;margin-bottom:32px;
+}
+.hero-headline em{font-style:italic;color:var(--gold);}
+.hero-sub{
+  font-size:17px;line-height:1.8;color:var(--ink-mid);
+  max-width:580px;font-weight:300;margin-bottom:52px;
+}
+.hero-scroll{
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-dim);
+  display:flex;align-items:center;gap:12px;
+}
+.hero-scroll::after{content:'';width:48px;height:1px;background:var(--ink-dim);}
+@media(max-width:640px){.hero{padding:0 24px 60px;}.hero-line{left:24px;}}
+
+/* ── SECCIÓN GENÉRICA ─────────────────────────── */
+.section{padding:120px 48px;border-top:1px solid var(--rule);}
+.section-inner{max-width:1080px;margin:0 auto;}
+@media(max-width:640px){.section{padding:80px 24px;}}
+
+/* ── INTRO / SWENSEN ─────────────────────────── */
+.intro-grid{display:grid;grid-template-columns:1fr 2fr;gap:80px;align-items:start;}
+@media(max-width:768px){.intro-grid{grid-template-columns:1fr;gap:40px;}}
+.intro-label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--green-lt);line-height:2;}
+.intro-body{font-family:var(--serif);font-size:clamp(22px,2.5vw,30px);font-weight:300;line-height:1.6;color:var(--ink);}
+.intro-body strong{font-weight:500;color:var(--gold);}
+
+/* ── BARRA DE ASIGNACIÓN ─────────────────────── */
+.alloc-section{background:var(--deep);padding:120px 48px;}
+.alloc-inner{max-width:1080px;margin:0 auto;}
+.alloc-heading{font-family:var(--serif);font-size:clamp(32px,4vw,52px);font-weight:300;margin-bottom:64px;line-height:1.2;}
+.alloc-heading em{font-style:italic;color:var(--gold);}
+
+/* Barra visual */
+.alloc-bar-wrap{margin-bottom:20px;position:relative;}
+.alloc-bar-track{display:flex;height:56px;overflow:hidden;border-radius:2px;gap:2px;}
+.alloc-bar-seg{
+  height:100%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.85);
+  overflow:hidden;white-space:nowrap;transition:flex .8s cubic-bezier(.4,0,.2,1);
+  flex:0;/* animated from 0 to target */
+  position:relative;cursor:default;
+}
+.alloc-bar-seg:hover{filter:brightness(1.15);}
+.alloc-bar-seg-label{position:relative;z-index:1;padding:0 6px;font-weight:500;}
+
+/* Leyenda debajo de la barra */
+.alloc-legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0;margin-top:0;}
+.alloc-legend-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:18px 0;border-top:1px solid var(--rule);
+  cursor:default;transition:background .15s;
+}
+.alloc-legend-item:hover .alloc-legend-pct{color:var(--ink);}
+.alloc-swatch{width:10px;height:10px;border-radius:1px;flex-shrink:0;margin-top:3px;}
+.alloc-legend-name{font-size:12px;color:var(--ink-mid);line-height:1.4;flex:1;}
+.alloc-legend-pct{font-family:var(--mono);font-size:16px;font-weight:500;color:var(--ink-dim);transition:color .2s;}
+
+/* ── TABLA DE ACTIVOS ────────────────────────── */
+.assets-section{padding:120px 48px;background:var(--void);}
+.assets-inner{max-width:1080px;margin:0 auto;}
+.section-title{font-family:var(--serif);font-size:clamp(32px,4vw,52px);font-weight:300;margin-bottom:60px;line-height:1.2;}
+.section-title em{font-style:italic;color:var(--gold);}
+
+.asset-list{display:flex;flex-direction:column;gap:0;}
+.asset-row{
+  display:grid;grid-template-columns:2fr 1fr 3fr;gap:32px;
+  padding:28px 0;border-top:1px solid var(--rule);
+  align-items:start;
+  opacity:0;transform:translateY(24px);
+  transition:opacity .6s ease, transform .6s ease;
+}
+.asset-row.visible{opacity:1;transform:translateY(0);}
+.asset-name{font-family:var(--serif);font-size:20px;font-weight:400;color:var(--ink);line-height:1.3;}
+.asset-pct-wrap{display:flex;flex-direction:column;gap:6px;}
+.asset-pct{font-family:var(--mono);font-size:28px;font-weight:500;color:var(--green-lt);line-height:1;}
+.asset-bar-mini{height:2px;background:var(--rule);width:100%;margin-top:4px;}
+.asset-bar-mini-fill{height:100%;background:var(--green);transition:width 1s ease;}
+.asset-desc{font-size:14px;line-height:1.8;color:var(--ink-mid);font-weight:300;}
+@media(max-width:768px){.asset-row{grid-template-columns:1fr;gap:12px;}}
+
+/* ── POR QUÉ INVERTIR ────────────────────────── */
+.why-section{padding:120px 48px;background:var(--surface);}
+.why-inner{max-width:1080px;margin:0 auto;}
+.why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1px;background:var(--rule);margin-top:60px;}
+.why-card{
+  background:var(--surface);padding:48px 40px;
+  opacity:0;transform:translateY(20px);
+  transition:opacity .7s ease,transform .7s ease;
+}
+.why-card.visible{opacity:1;transform:translateY(0);}
+.why-card-num{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--green-lt);margin-bottom:20px;}
+.why-card-title{font-family:var(--serif);font-size:26px;font-weight:400;color:var(--ink);margin-bottom:16px;line-height:1.3;}
+.why-card-body{font-size:14px;line-height:1.9;color:var(--ink-mid);font-weight:300;}
+
+/* ── CTA / CIERRE ────────────────────────────── */
+.cta-section{
+  padding:160px 48px;text-align:center;position:relative;overflow:hidden;
+  background:linear-gradient(to bottom,var(--void),var(--deep));
+}
+.cta-bg{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 70% 50% at 50% 50%,rgba(77,122,42,.08) 0%,transparent 70%);
+}
+.cta-inner{position:relative;max-width:720px;margin:0 auto;}
+.cta-label{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--green-lt);margin-bottom:28px;}
+.cta-headline{font-family:var(--serif);font-size:clamp(36px,5vw,64px);font-weight:300;line-height:1.15;margin-bottom:40px;color:var(--ink);}
+.cta-headline em{font-style:italic;color:var(--gold);}
+.cta-links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;}
+.cta-btn{
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  padding:14px 32px;text-decoration:none;transition:all .2s;
+}
+.cta-btn.primary{background:var(--green);color:#fff;border:1px solid var(--green);}
+.cta-btn.primary:hover{background:var(--green-lt);border-color:var(--green-lt);color:var(--void);}
+.cta-btn.secondary{border:1px solid var(--rule-md);color:var(--ink-mid);}
+.cta-btn.secondary:hover{border-color:var(--ink-mid);color:var(--ink);}
+
+/* ── FOOTER ──────────────────────────────────── */
+footer{padding:32px 48px;border-top:1px solid var(--rule);}
+.footer-inner{max-width:1080px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.footer-brand{font-family:var(--serif);font-size:14px;color:var(--ink-dim);}
+.footer-note{font-family:var(--mono);font-size:10px;color:var(--ink-dim);letter-spacing:.04em;max-width:480px;line-height:1.6;}
+
+/* ── SCROLL REVEAL GLOBAL ────────────────────── */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">Fondo Marea Internacional</div>
+  <ul class="nav-links">
+    <li><a href="index.html">NAV en vivo</a></li>
+    <li><a href="sectores.html">Sectores</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-line"></div>
+  <div class="hero-eyebrow">Filosofía de inversión</div>
+  <h1 class="hero-headline">El poder de la<br>diversificación <em>institucional</em></h1>
+  <p class="hero-sub">No buscamos el golpe de suerte. Aplicamos los principios de David Swensen para construir carteras resilientes, diseñadas para prosperar en cualquier ciclo de mercado.</p>
+  <div class="hero-scroll">Scroll para explorar</div>
+</section>
+
+<!-- INTRO / SWENSEN -->
+<section class="section">
+  <div class="section-inner">
+    <div class="intro-grid">
+      <div>
+        <div class="intro-label">El marco teórico</div>
+      </div>
+      <div class="intro-body reveal">
+        En Fondo Marea Internacional, nuestra filosofía trasciende la especulación. Nos basamos en los principios probados de <strong>David Swensen</strong> — el arquitecto del modelo de inversión de Yale — enfocados en la construcción de carteras sólidas, resilientes y diseñadas para prosperar en cualquier ciclo de mercado.<br><br>
+        La clave de nuestro éxito radica en una asignación estratégica que <strong>equilibra el crecimiento agresivo con la estabilidad</strong> necesaria para preservar tu patrimonio a largo plazo.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BARRA DE ASIGNACIÓN -->
+<section class="alloc-section">
+  <div class="alloc-inner">
+    <h2 class="alloc-heading reveal">Nuestra asignación<br>de <em>activos</em></h2>
+
+    <div class="alloc-bar-wrap" id="allocBarWrap">
+      <div class="alloc-bar-track" id="allocBarTrack"></div>
+    </div>
+
+    <div class="alloc-legend" id="allocLegend"></div>
+  </div>
+</section>
+
+<!-- TABLA DE ACTIVOS -->
+<section class="assets-section">
+  <div class="assets-inner">
+    <h2 class="section-title reveal">Cada componente cumple<br>una <em>función específica</em></h2>
+    <div class="asset-list" id="assetList"></div>
+  </div>
+</section>
+
+<!-- POR QUÉ INVERTIR CON NOSOTROS -->
+<section class="why-section">
+  <div class="why-inner">
+    <h2 class="section-title reveal">Por qué invertir<br>con <em>nosotros</em></h2>
+    <div class="why-grid" id="whyGrid"></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-bg"></div>
+  <div class="cta-inner">
+    <div class="cta-label">Da el siguiente paso</div>
+    <h2 class="cta-headline">Tu patrimonio merece una<br>gestión <em>de élite</em></h2>
+    <div class="cta-links">
+      <a href="index.html" class="cta-btn primary">Ver NAV en tiempo real</a>
+      <a href="sectores.html" class="cta-btn secondary">Análisis por sector</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Fondo Marea Internacional</div>
+    <div class="footer-note">Esta página tiene carácter informativo y no constituye una oferta pública de venta de valores. La inversión en fondos implica riesgos. Los rendimientos pasados no garantizan resultados futuros.</div>
+  </div>
+</footer>
+
+<script>
+/* ── DATOS ──────────────────────────────────── */
+const ASSETS = [
+  {
+    name:"Renta Fija",pct:30.7,color:"#4D7A2A",
+    desc:"El ancla de estabilidad. Protege el capital contra la volatilidad y proporciona un flujo de ingresos constante, fundamental para mitigar riesgos en mercados bajistas."
+  },
+  {
+    name:"Renta Variable EE.UU.",pct:24.2,color:"#1A3A5C",
+    desc:"El motor de crecimiento. Exposición directa a las empresas más innovadoras y sólidas del mundo, aprovechando la eficiencia del mercado estadounidense."
+  },
+  {
+    name:"Mercados Desarrollados",pct:14.9,color:"#5A6B4A",
+    desc:"Diversificación geográfica. Capturamos valor fuera de EE.UU., aprovechando mercados maduros con fundamentos macroeconómicos robustos."
+  },
+  {
+    name:"FIBRAs México",pct:14.0,color:"#7A2A2A",
+    desc:"Activos reales con flujo constante. Permite participar en el sector inmobiliario mexicano, ofreciendo protección inflacionaria y rentas recurrentes en moneda local."
+  },
+  {
+    name:"Cripto",pct:6.0,color:"#8B6914",
+    desc:"Exposición a la nueva economía digital. Un componente de crecimiento asimétrico que actúa como cobertura contra la degradación monetaria tradicional."
+  },
+  {
+    name:"REITs EE.UU.",pct:5.1,color:"#3A5A7A",
+    desc:"Eficiencia fiscal y diversificación sectorial. Acceso a portafolios inmobiliarios de alta calidad que ofrecen dividendos superiores y potencial de apreciación a largo plazo."
+  },
+  {
+    name:"Mercados Emergentes",pct:5.0,color:"#4A7A28",
+    desc:"El motor de la próxima década. Apostamos por las economías de mayor crecimiento demográfico y expansión de clase media a nivel mundial."
+  },
+  {
+    name:"Efectivo",pct:0.2,color:"#3A3A34",
+    desc:"Liquidez operativa para aprovechar oportunidades tácticas inmediatas cuando el mercado presenta descuentos atractivos."
+  }
+];
+
+const WHY = [
+  {
+    num:"01",title:"Enfoque institucional",
+    body:"No buscamos el golpe de suerte. Aplicamos la disciplina de gestión de fondos universitarios de élite, donde la clave no es adivinar el mercado, sino estar siempre en él con la exposición correcta."
+  },
+  {
+    num:"02",title:"Protección y crecimiento",
+    body:"Nuestra estrategia está diseñada para que, incluso en años de alta incertidumbre, el conjunto de la cartera mantenga su valor mientras se posiciona para capturar las alzas de los mercados globales."
+  },
+  {
+    num:"03",title:"Transparencia radical",
+    body:"Creemos en la claridad total. Cada activo cumple una función lógica, eliminando la sobreexposición innecesaria y maximizando la eficiencia de cada peso invertido."
+  }
+];
+
+/* ── BARRA DE ASIGNACIÓN ──────────────────── */
+function buildAllocBar(){
+  const track = document.getElementById("allocBarTrack");
+  const legend = document.getElementById("allocLegend");
+  track.innerHTML = "";
+  legend.innerHTML = "";
+
+  ASSETS.forEach(a=>{
+    // Segmento de barra
+    const seg = document.createElement("div");
+    seg.className = "alloc-bar-seg";
+    seg.style.background = a.color;
+    seg.style.flex = "0";
+    seg.setAttribute("data-flex", a.pct.toString());
+    seg.innerHTML = `<span class="alloc-bar-seg-label">${a.pct >= 5 ? a.pct + "%" : ""}</span>`;
+    seg.title = `${a.name}: ${a.pct}%`;
+    track.appendChild(seg);
+
+    // Leyenda
+    const item = document.createElement("div");
+    item.className = "alloc-legend-item";
+    item.innerHTML = `
+      <div class="alloc-swatch" style="background:${a.color}"></div>
+      <div class="alloc-legend-name">${a.name}</div>
+      <div class="alloc-legend-pct">${a.pct}%</div>`;
+    legend.appendChild(item);
+  });
+
+  // Animar cuando la sección sea visible
+  const observer = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        document.querySelectorAll(".alloc-bar-seg").forEach(seg=>{
+          seg.style.transition = "flex .9s cubic-bezier(.4,0,.2,1)";
+          seg.style.flex = seg.getAttribute("data-flex");
+        });
+        observer.disconnect();
+      }
+    });
+  },{threshold:0.3});
+  observer.observe(document.getElementById("allocBarWrap"));
+}
+
+/* ── TABLA DE ACTIVOS ─────────────────────── */
+function buildAssetList(){
+  const list = document.getElementById("assetList");
+  ASSETS.forEach((a, i)=>{
+    const row = document.createElement("div");
+    row.className = "asset-row";
+    row.style.transitionDelay = `${i*70}ms`;
+    row.innerHTML = `
+      <div class="asset-name">${a.name}</div>
+      <div class="asset-pct-wrap">
+        <div class="asset-pct">${a.pct}%</div>
+        <div class="asset-bar-mini">
+          <div class="asset-bar-mini-fill" style="width:0%;background:${a.color}" data-width="${(a.pct/31*100).toFixed(0)}%"></div>
+        </div>
+      </div>
+      <div class="asset-desc">${a.desc}</div>`;
+    list.appendChild(row);
+  });
+
+  // Observer para cada fila
+  const observer = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.classList.add("visible");
+        const bar = e.target.querySelector(".asset-bar-mini-fill");
+        if(bar) setTimeout(()=>{ bar.style.width=bar.getAttribute("data-width"); },200);
+        observer.unobserve(e.target);
+      }
+    });
+  },{threshold:0.15});
+  document.querySelectorAll(".asset-row").forEach(r=>observer.observe(r));
+}
+
+/* ── POR QUÉ INVERTIR ─────────────────────── */
+function buildWhyCards(){
+  const grid = document.getElementById("whyGrid");
+  WHY.forEach((w,i)=>{
+    const card = document.createElement("div");
+    card.className = "why-card";
+    card.style.transitionDelay = `${i*120}ms`;
+    card.innerHTML = `
+      <div class="why-card-num">${w.num}</div>
+      <div class="why-card-title">${w.title}</div>
+      <div class="why-card-body">${w.body}</div>`;
+    grid.appendChild(card);
+  });
+
+  const observer = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){ e.target.classList.add("visible"); observer.unobserve(e.target); }
+    });
+  },{threshold:0.2});
+  document.querySelectorAll(".why-card").forEach(c=>observer.observe(c));
+}
+
+/* ── SCROLL REVEAL GENÉRICO ───────────────── */
+function initReveal(){
+  const observer = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){ e.target.classList.add("visible"); observer.unobserve(e.target); }
+    });
+  },{threshold:0.15});
+  document.querySelectorAll(".reveal").forEach(el=>observer.observe(el));
+}
+
+/* ── HERO PARALLAX SUTIL ──────────────────── */
+function initParallax(){
+  const heroLine = document.querySelector(".hero-line");
+  window.addEventListener("scroll",()=>{
+    const y = window.scrollY;
+    if(heroLine) heroLine.style.transform = `translateY(${y*0.15}px)`;
+  },{passive:true});
+}
+
+/* ── INIT ─────────────────────────────────── */
+buildAllocBar();
+buildAssetList();
+buildWhyCards();
+initReveal();
+initParallax();
+</script>
+</body>
+</html>
