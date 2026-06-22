@@ -202,38 +202,16 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); -w
     </div>
   </section>
 
-  <!-- META STRIP -->
+  <!-- META STRIP (público: solo fecha de actualización) -->
   <div class="meta-strip">
     <div class="meta-cell">
-      <div class="meta-k">Valor total del portafolio</div>
-      <div class="meta-v" id="metaTotal">—</div>
-    </div>
-    <div class="meta-cell" style="padding-left:28px;">
-      <div class="meta-k">Acciones en circulación</div>
-      <div class="meta-v" id="metaShares">—</div>
-    </div>
-    <div class="meta-cell" style="padding-left:28px;">
-      <div class="meta-k">Tipo de cambio USD/MXN</div>
-      <div class="meta-v" id="metaFx">—</div>
-    </div>
-    <div class="meta-cell" style="padding-left:28px;">
       <div class="meta-k">Última actualización</div>
       <div class="meta-v" id="metaUpdated">—</div>
     </div>
-  </div>
-
-  <!-- EVOLUCIÓN DEL NAV -->
-  <div class="sec-head">
-    <div class="sec-title">Evolución del NAV</div>
-    <div class="sec-controls" id="navRangeTabs">
-      <button class="tab-btn" data-range="30">1M</button>
-      <button class="tab-btn active" data-range="90">3M</button>
-      <button class="tab-btn" data-range="365">1A</button>
-      <button class="tab-btn" data-range="all">Todo</button>
+    <div class="meta-cell" style="padding-left:28px;">
+      <div class="meta-k">Posiciones activas</div>
+      <div class="meta-v" id="metaPositions">—</div>
     </div>
-  </div>
-  <div class="card">
-    <div class="chart-wrap"><canvas id="navChart"></canvas></div>
   </div>
 
   <!-- ASIGNACIÓN -->
@@ -514,54 +492,46 @@ const fmtCompact = n => "$"+new Intl.NumberFormat("es-MX",{notation:"compact",ma
 const fmtInt = n => new Intl.NumberFormat("es-MX").format(Math.round(n));
 
 /* ── CHART FACTORY ──────────────────────────────────── */
-function makeLineChart(canvasId, series, prevInst, color, labelFn){
+// Convierte serie de PnL a porcentaje relativo al valor inicial del portafolio del período
+function toPctSeries(series, startPortfolioValue){
+  return series.map(p=>({
+    date: p.date,
+    pct: startPortfolioValue ? (p.cumulative/startPortfolioValue)*100 : 0,
+    dailyPct: startPortfolioValue ? (p.dailyPnL/startPortfolioValue)*100 : 0,
+  }));
+}
+function makeLineChart(canvasId, series, prevInst, color){
   if(prevInst) prevInst.destroy();
   const labels=series.map(p=>p.date.toLocaleDateString("es-MX",{day:"numeric",month:"short"}));
-  const values=series.map(p=>p.cumulative);
-  const daily=series.map(p=>p.dailyPnL);
+  const values=series.map(p=>p.pct);
+  const daily=series.map(p=>p.dailyPct);
   return new Chart(document.getElementById(canvasId),{
     type:"line",
     data:{labels,datasets:[{data:values,borderColor:color,backgroundColor:color+"18",fill:true,tension:0.2,pointRadius:0,pointHoverRadius:4,pointHoverBackgroundColor:color,borderWidth:1.5}]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{
-        label:c=>"Acum: "+(c.raw>=0?"+":"")+"$"+c.raw.toFixed(2)+" MXN",
-        afterLabel:c=>{const d=daily[c.dataIndex];return "Día: "+(d>=0?"+":"")+`$${d.toFixed(2)}`;}
+        label:c=>"Acum: "+(c.raw>=0?"+":"")+c.raw.toFixed(2)+"%",
+        afterLabel:c=>{const d=daily[c.dataIndex];return "Día: "+(d>=0?"+":"")+d.toFixed(3)+"%";}
       }}},
       scales:{
         x:{grid:{display:false},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},maxTicksLimit:7}},
-        y:{grid:{color:"#ECEAE4"},border:{dash:[3,3]},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},callback:v=>"$"+v.toFixed(0)}}
-      }
-    }
-  });
-}
-function makeNavChart(canvasId, series, prevInst){
-  if(prevInst) prevInst.destroy();
-  const labels=series.map(h=>h.date.toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"2-digit"}));
-  const values=series.map(h=>h.nav);
-  return new Chart(document.getElementById(canvasId),{
-    type:"line",
-    data:{labels,datasets:[{data:values,borderColor:"#2D5016",backgroundColor:"rgba(45,80,22,0.05)",fill:true,tension:0.2,pointRadius:0,pointHoverRadius:4,pointHoverBackgroundColor:"#2D5016",borderWidth:1.5}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>"NAV: $"+c.raw.toFixed(6)+" MXN"}}},
-      scales:{
-        x:{grid:{display:false},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},maxTicksLimit:8}},
-        y:{grid:{color:"#ECEAE4"},border:{dash:[3,3]},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},callback:v=>"$"+v.toFixed(4)}}
+        y:{grid:{color:"#ECEAE4"},border:{dash:[3,3]},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},callback:v=>v.toFixed(1)+"%"}}
       }
     }
   });
 }
 function makeBarChart(canvasId, monthly, prevInst){
   if(prevInst) prevInst.destroy();
-  const colors=monthly.map(m=>m.value>=0?"#2D5016":"#8B2000");
-  const bgColors=monthly.map(m=>m.value>=0?"rgba(45,80,22,0.15)":"rgba(139,32,0,0.15)");
+  const colors=monthly.map(m=>m.pct>=0?"#2D5016":"#8B2000");
+  const bgColors=monthly.map(m=>m.pct>=0?"rgba(45,80,22,0.15)":"rgba(139,32,0,0.15)");
   return new Chart(document.getElementById(canvasId),{
     type:"bar",
-    data:{labels:monthly.map(m=>m.label),datasets:[{data:monthly.map(m=>m.value),backgroundColor:bgColors,borderColor:colors,borderWidth:1.5,borderRadius:2}]},
+    data:{labels:monthly.map(m=>m.label),datasets:[{data:monthly.map(m=>m.pct),backgroundColor:bgColors,borderColor:colors,borderWidth:1.5,borderRadius:2}]},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(c.raw>=0?"+":"")+"$"+c.raw.toFixed(2)+" MXN"}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(c.raw>=0?"+":"")+c.raw.toFixed(2)+"%"}}},
       scales:{
         x:{grid:{display:false},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9}}},
-        y:{grid:{color:"#ECEAE4"},border:{dash:[3,3]},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},callback:v=>"$"+v.toFixed(0)}}
+        y:{grid:{color:"#ECEAE4"},border:{dash:[3,3]},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},callback:v=>v.toFixed(1)+"%"}}
       }
     }
   });
@@ -572,9 +542,8 @@ function renderHero(positions,shares,history){
   const total=positions.reduce((s,p)=>s+p.valueMXN,0);
   const nav=total/shares;
   document.getElementById("navValue").textContent=fmtMXN(nav);
-  document.getElementById("metaTotal").textContent=fmtCompact(total);
-  document.getElementById("metaShares").textContent=fmtInt(shares);
   document.getElementById("metaUpdated").textContent=new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+  document.getElementById("metaPositions").textContent=positions.filter(p=>p.valueMXN>0).length+" activos";
 
   const prevNav=history.length>1?history.at(-2).nav:null;
   const chgEl=document.getElementById("navChange");
@@ -617,53 +586,79 @@ function renderAlloc(positions){
     options:{responsive:true,maintainAspectRatio:true,cutout:"70%",plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+": "+((c.raw/total)*100).toFixed(1)+"%"}}}}
   });
 
-  // Cards
+  // Cards — solo porcentajes, sin montos
   const grid=document.getElementById("allocGrid"); grid.innerHTML="";
   catArr.forEach(c=>{
     const pct=(c.value/total)*100;
     const card=document.createElement("div"); card.className="alloc-card";
     card.innerHTML=`<div class="alloc-top"><div class="alloc-name">${c.name}</div><div class="alloc-pct">${pct.toFixed(1)}%</div></div>
-      <div class="alloc-bar-track"><div class="alloc-bar-fill" style="width:${Math.min(pct/35*100,100)}%;background:${c.color}"></div></div>
-      <div class="alloc-bottom">${fmtCompact(c.value)}</div>`;
+      <div class="alloc-bar-track"><div class="alloc-bar-fill" style="width:${Math.min(pct/35*100,100)}%;background:${c.color}"></div></div>`;
     grid.appendChild(card);
   });
 }
 
-/* ── RENDER NAV CHART ────────────────────────────────── */
-let navInst=null;
-function renderNavChart(history,range){
-  let data=history;
-  if(range!=="all"){const cutoff=new Date();cutoff.setDate(cutoff.getDate()-range);data=history.filter(h=>h.date>=cutoff);}
-  navInst=makeNavChart("navChart",data,navInst);
+/* ── RENDER PNL CHARTS (en %) ────────────────────────── */
+let pnlInst2025=null,pnlInst2026=null,pnlInstTotal=null,barInst=null;
+
+function setBadge(id,pct){
+  const el=document.getElementById(id); if(!el) return;
+  el.className="pnl-badge "+(pct>=0?"up":"down");
+  el.textContent=(pct>=0?"+":"")+pct.toFixed(2)+"%";
 }
 
-/* ── RENDER PNL CHARTS ───────────────────────────────── */
-let pnlInst2025=null,pnlInst2026=null,pnlInstTotal=null,barInst=null;
-function setBadge(id,value){
-  const el=document.getElementById(id); if(!el) return;
-  el.className="pnl-badge "+(value>=0?"up":"down");
-  el.textContent=(value>=0?"+":"-")+"$"+fmtMXN(Math.abs(value));
+function getStartValue(history){
+  // Valor del portafolio al inicio del histórico completo (primer registro con totalValue)
+  return history.find(h=>h.totalValue!=null)?.totalValue||1;
 }
+function getYearStartValue(history, year){
+  // Valor inicial del año — último día del año anterior si existe, si no el primer día del año
+  const sorted=history.filter(h=>h.totalValue!=null).sort((a,b)=>a.date-b.date);
+  const prevYear=sorted.filter(h=>h.date.getFullYear()<year);
+  if(prevYear.length) return prevYear.at(-1).totalValue;
+  return sorted.filter(h=>h.date.getFullYear()===year)[0]?.totalValue||1;
+}
+
 function renderPnL(history){
   const byYear=computePnLByYear(history);
   const total=computeTotalPnL(history);
-  const monthly=computeMonthlyPnL(byYear);
+  if(!total.length) return;
 
-  if(byYear[2025]?.length) { pnlInst2025=makeLineChart("pnlChart2025",byYear[2025],pnlInst2025,"#1A3A5C"); setBadge("badge2025",byYear[2025].at(-1).cumulative); }
-  if(byYear[2026]?.length) { pnlInst2026=makeLineChart("pnlChart2026",byYear[2026],pnlInst2026,"#2D5016"); setBadge("badge2026",byYear[2026].at(-1).cumulative); }
-  if(total.length)         { pnlInstTotal=makeLineChart("pnlChartTotal",total,pnlInstTotal,"#4A4A46"); setBadge("badgeTotal",total.at(-1).cumulative); }
-  if(monthly.length)       { barInst=makeBarChart("monthlyBarChart",monthly,barInst); }
+  const startVal=getStartValue(history);
 
-  // Stats
-  const totalPnL=total.at(-1)?.cumulative||0;
-  const best=total.reduce((b,p)=>p.dailyPnL>b.dailyPnL?p:b,total[0]);
-  const worst=total.reduce((w,p)=>p.dailyPnL<w.dailyPnL?p:w,total[0]);
+  // Convertir a % y renderizar por año
+  if(byYear[2025]?.length){
+    const sv=getYearStartValue(history,2025);
+    const pctSeries=toPctSeries(byYear[2025],sv);
+    pnlInst2025=makeLineChart("pnlChart2025",pctSeries,pnlInst2025,"#1A3A5C");
+    setBadge("badge2025",pctSeries.at(-1).pct);
+  }
+  if(byYear[2026]?.length){
+    const sv=getYearStartValue(history,2026);
+    const pctSeries=toPctSeries(byYear[2026],sv);
+    pnlInst2026=makeLineChart("pnlChart2026",pctSeries,pnlInst2026,"#2D5016");
+    setBadge("badge2026",pctSeries.at(-1).pct);
+  }
+
+  // Total histórico en %
+  const totalPctSeries=toPctSeries(total,startVal);
+  pnlInstTotal=makeLineChart("pnlChartTotal",totalPctSeries,pnlInstTotal,"#4A4A46");
+  setBadge("badgeTotal",totalPctSeries.at(-1).pct);
+
+  // Barras mensuales en %
+  const rawMonthly=computeMonthlyPnL(byYear);
+  const monthlyPct=rawMonthly.map(m=>({...m,pct:(m.value/startVal)*100}));
+  barInst=makeBarChart("monthlyBarChart",monthlyPct,barInst);
+
+  // Stats en %
+  const totalPct=totalPctSeries.at(-1).pct;
+  const best=totalPctSeries.reduce((b,p)=>p.dailyPct>b.dailyPct?p:b,totalPctSeries[0]);
+  const worst=totalPctSeries.reduce((w,p)=>p.dailyPct<w.dailyPct?p:w,totalPctSeries[0]);
   const fmtd=d=>d.toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"});
   document.getElementById("pnlStats").innerHTML=`
-    <div class="pnl-stat"><div class="k">Total acumulado</div><div class="v ${totalPnL>=0?'up':'down'}">${totalPnL>=0?'+':'-'}${fmtMXN(Math.abs(totalPnL))}</div></div>
-    <div class="pnl-stat"><div class="k">Mejor día — ${fmtd(best.date)}</div><div class="v up">+${fmtMXN(best.dailyPnL)}</div></div>
-    <div class="pnl-stat"><div class="k">Peor día — ${fmtd(worst.date)}</div><div class="v down">-${fmtMXN(Math.abs(worst.dailyPnL))}</div></div>
-    <div class="pnl-stat"><div class="k">Días positivos</div><div class="v up">${total.filter(p=>p.dailyPnL>0).length} de ${total.length}</div></div>`;
+    <div class="pnl-stat"><div class="k">Rendimiento acumulado</div><div class="v ${totalPct>=0?'up':'down'}">${totalPct>=0?'+':''}${totalPct.toFixed(2)}%</div></div>
+    <div class="pnl-stat"><div class="k">Mejor día — ${fmtd(best.date)}</div><div class="v up">+${best.dailyPct.toFixed(3)}%</div></div>
+    <div class="pnl-stat"><div class="k">Peor día — ${fmtd(worst.date)}</div><div class="v down">${worst.dailyPct.toFixed(3)}%</div></div>
+    <div class="pnl-stat"><div class="k">Días positivos</div><div class="v up">${totalPctSeries.filter(p=>p.dailyPct>0).length} de ${totalPctSeries.length}</div></div>`;
 }
 
 /* ── TOGGLE PNL ──────────────────────────────────────── */
@@ -678,15 +673,6 @@ function togglePnl(){
   if(pnlOpen&&!pnlRendered&&fullHistory.length){renderPnL(fullHistory);pnlRendered=true;}
 }
 
-/* ── NAV RANGE TABS ──────────────────────────────────── */
-document.getElementById("navRangeTabs").addEventListener("click",e=>{
-  if(e.target.tagName!=="BUTTON") return;
-  document.querySelectorAll("#navRangeTabs .tab-btn").forEach(b=>b.classList.remove("active"));
-  e.target.classList.add("active");
-  const r=e.target.dataset.range;
-  renderNavChart(fullHistory,r==="all"?"all":parseInt(r));
-});
-
 /* ── STATUS ──────────────────────────────────────────── */
 function setLive(ok,demo){
   const dot=document.getElementById("liveDot"),txt=document.getElementById("liveText");
@@ -696,9 +682,6 @@ function setLive(ok,demo){
 }
 function showError(msg){const b=document.getElementById("errorBox");b.textContent=msg;b.classList.add("show");}
 
-/* ── CONFIG FX DISPLAY ───────────────────────────────── */
-function showFx(fx){ document.getElementById("metaFx").textContent=fx?fmtMXN(fx):"—"; }
-
 /* ── LOAD ────────────────────────────────────────────── */
 let fullHistory=[];
 async function loadData(){
@@ -707,7 +690,6 @@ async function loadData(){
     setLive(false,true);
     renderHero(positions,1000000,fullHistory);
     renderAlloc(positions);
-    renderNavChart(fullHistory,90);
     showError("Modo demostración con datos simulados. Conecta tus Google Sheets en CONFIG para ver datos reales.");
     return;
   }
@@ -724,8 +706,6 @@ async function loadData(){
     setLive(true,false);
     renderHero(positions,shares,history);
     renderAlloc(positions);
-    renderNavChart(history,90);
-    showFx(cfg.fx);
     if(pnlOpen){renderPnL(history);pnlRendered=true;}
     else{pnlRendered=false;}
   } catch(e){
