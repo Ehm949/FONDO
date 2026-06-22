@@ -25,73 +25,55 @@
   --sans:    'DM Sans', system-ui, sans-serif;
   --mono:    'JetBrains Mono', monospace;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; min-height: 100vh; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;}
+.page{max-width:680px;margin:0 auto;padding:0 24px 80px;}
 
-.page { max-width: 680px; margin: 0 auto; padding: 0 24px 80px; }
+.masthead{border-bottom:2px solid var(--ink);padding:32px 0 20px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.mast-name{font-family:var(--serif);font-size:20px;font-weight:500;}
+.mast-sub{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-top:3px;}
+.status-badge{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-dim);border:1px solid var(--rule);padding:7px 12px;background:var(--white);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ink-dim);flex-shrink:0;}
+.dot.loading{background:#B8860B;animation:blink 1s ease-in-out infinite;}
+.dot.ok{background:var(--up);animation:blink 2.5s ease-in-out infinite;}
+.dot.error{background:var(--down);animation:none;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 
-.masthead {
-  border-bottom: 2px solid var(--ink);
-  padding: 32px 0 20px;
-  display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px;
-}
-.mast-name  { font-family: var(--serif); font-size: 20px; font-weight: 500; }
-.mast-sub   { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); margin-top: 3px; }
-.status-badge {
-  display: flex; align-items: center; gap: 8px;
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--ink-dim); border: 1px solid var(--rule); padding: 7px 12px; background: var(--white);
-}
-.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-dim); flex-shrink: 0; }
-.dot.loading { background: #B8860B; animation: blink 1s ease-in-out infinite; }
-.dot.ok      { background: var(--up); animation: blink 2.5s ease-in-out infinite; }
-.dot.error   { background: var(--down); animation: none; }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+.greeting{padding:44px 0 32px;border-bottom:1px solid var(--rule);}
+.greeting-name{font-family:var(--serif);font-size:clamp(28px,6vw,44px);font-weight:400;margin-bottom:6px;}
+.greeting-date{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-dim);}
 
-.greeting { padding: 44px 0 32px; border-bottom: 1px solid var(--rule); }
-.greeting-name { font-family: var(--serif); font-size: clamp(28px,6vw,44px); font-weight: 400; margin-bottom: 6px; }
-.greeting-date { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--ink-dim); }
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border:1px solid var(--rule);margin:32px 0 0;}
+@media(max-width:480px){.cards{grid-template-columns:1fr;}}
+.card{background:var(--white);padding:22px 22px 20px;}
+.card-k{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:8px;}
+.card-v{font-family:var(--serif);font-size:30px;font-weight:500;color:var(--ink);line-height:1.1;}
+.card-v.accent{color:var(--accent);}
+.card-sub{font-family:var(--mono);font-size:11px;color:var(--ink-dim);margin-top:6px;}
 
-.cards {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 32px 0 0;
-}
-@media(max-width:480px){ .cards { grid-template-columns: 1fr; } }
-.card { background: var(--white); padding: 22px 22px 20px; }
-.card-k { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 8px; }
-.card-v { font-family: var(--serif); font-size: 30px; font-weight: 500; color: var(--ink); line-height: 1.1; }
-.card-v.accent { color: var(--accent); }
-.card-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); margin-top: 6px; }
-.card-v.skeleton { color: var(--rule); }
+.perf-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:28px;padding:18px 0;border-top:1px solid var(--rule-lt);border-bottom:1px solid var(--rule-lt);flex-wrap:wrap;}
+.perf-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);}
+.perf-value{font-family:var(--mono);font-size:20px;font-weight:500;}
+.perf-value.up{color:var(--up);}
+.perf-value.down{color:var(--down);}
+.perf-value.neutral{color:var(--ink-dim);}
 
-.perf-row {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin-top: 28px; padding: 18px 0;
-  border-top: 1px solid var(--rule-lt); border-bottom: 1px solid var(--rule-lt);
-  flex-wrap: wrap;
-}
-.perf-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); }
-.perf-value { font-family: var(--mono); font-size: 20px; font-weight: 500; }
-.perf-value.up   { color: var(--up); }
-.perf-value.down { color: var(--down); }
-.perf-value.neutral { color: var(--ink-dim); }
+.detail{margin-top:36px;}
+.detail-title{font-family:var(--serif);font-size:17px;font-weight:400;margin-bottom:16px;}
+.detail-row{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--rule-lt);gap:12px;}
+.detail-row:last-child{border-bottom:none;}
+.detail-k{font-size:13px;color:var(--ink-mid);}
+.detail-v{font-family:var(--mono);font-size:13px;color:var(--ink);text-align:right;}
 
-.detail { margin-top: 36px; }
-.detail-title { font-family: var(--serif); font-size: 17px; font-weight: 400; margin-bottom: 16px; }
-.detail-row { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--rule-lt); gap: 12px; }
-.detail-row:last-child { border-bottom: none; }
-.detail-k { font-size: 13px; color: var(--ink-mid); }
-.detail-v { font-family: var(--mono); font-size: 13px; color: var(--ink); text-align: right; }
+.update-row{display:flex;align-items:center;gap:10px;margin-top:28px;}
+.update-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);}
+.update-val{font-family:var(--mono);font-size:12px;color:var(--ink-mid);}
 
-.update-row { display: flex; align-items: center; gap: 10px; margin-top: 28px; }
-.update-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); }
-.update-val   { font-family: var(--mono); font-size: 12px; color: var(--ink-mid); }
+.msg-box{margin-top:20px;padding:14px 16px;font-size:13px;line-height:1.6;border-left:3px solid var(--rule);color:var(--ink-dim);display:none;}
+.msg-box.show{display:block;}
+.msg-box.err{border-color:var(--down);background:var(--down-bg);color:var(--down);}
 
-.msg-box { margin-top: 20px; padding: 14px 16px; font-size: 13px; line-height: 1.6; border-left: 3px solid var(--rule); color: var(--ink-dim); display: none; }
-.msg-box.show { display: block; }
-.msg-box.err  { border-color: var(--down); background: var(--down-bg); color: var(--down); }
-
-.footnote { margin-top: 52px; padding-top: 20px; border-top: 1px solid var(--rule); font-size: 11px; color: var(--ink-dim); line-height: 1.8; }
+.footnote{margin-top:52px;padding-top:20px;border-top:1px solid var(--rule);font-size:11px;color:var(--ink-dim);line-height:1.8;}
 </style>
 </head>
 <body>
@@ -153,55 +135,36 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); -w
     <div class="detail-row"><span class="detail-k">Precio de compra</span><span class="detail-v" id="detailCost">—</span></div>
     <div class="detail-row"><span class="detail-k">Inversión inicial</span><span class="detail-v" id="detailInvested">—</span></div>
     <div class="detail-row"><span class="detail-k">Valor actual</span><span class="detail-v" id="detailValue">—</span></div>
-    <div class="detail-row"><span class="detail-k">Ganancia / pérdida en pesos</span><span class="detail-v" id="detailPnL">—</span></div>
+    <div class="detail-row"><span class="detail-k">Ganancia / pérdida</span><span class="detail-v" id="detailPnL">—</span></div>
     <div class="detail-row"><span class="detail-k">Rendimiento</span><span class="detail-v" id="detailPct">—</span></div>
   </div>
 
   <div class="msg-box" id="msgBox"></div>
 
   <div class="footnote">
-    Este estado de cuenta es de uso exclusivo y confidencial para Mauricio Saabedra. El valor se actualiza en tiempo real con base en el NAV del fondo. Para consultas contacta al administrador.
+    Estado de cuenta exclusivo y confidencial para Mauricio Saabedra. El valor se actualiza en tiempo real con base en el NAV del fondo. Para consultas contacta al administrador.
   </div>
 
 </div>
-
 <script>
-/* ── DATOS DEL ACCIONISTA ──────────────────────────────── */
+/* ── DATOS DEL ACCIONISTA ──── */
 const ACCIONISTA = {
-  nombre:         "Mauricio Saabedra",
-  acciones:       100,
-  precioPromedio: 0.29495,   // MXN por acción
+  nombre:         "Mauricio Saavedra",
+  acciones:       350,
+  precioPromedio: 0.29495,
 };
 
-/* ── FUENTES DE DATOS ─────────────────────────────────── */
-// Hoja 3 — tiene el NAV más reciente en la columna B (última fila con dato)
-const HISTORY_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=1974841137&single=true&output=csv";
+/* ── ID del Google Sheet y GID de Hoja 3 ── */
+const SHEET_ID = "2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV";
+const GID_H3   = "1974841137";
 
-/* ── UTILIDADES ───────────────────────────────────────── */
-function toNum(s){
-  const c = String(s||"").replace(/[^0-9.\-]/g,"");
-  return c === "" ? NaN : parseFloat(c);
-}
-function parseCSV(text){
-  return text.trim().split("\n").map(line => {
-    const cells = []; let cur = "", inQ = false;
-    for(const ch of line){
-      if(ch==='"'){ inQ=!inQ; continue; }
-      if(ch===','&&!inQ){ cells.push(cur.trim()); cur=""; continue; }
-      cur += ch;
-    }
-    cells.push(cur.trim());
-    return cells;
-  });
-}
+/* ── FORMATO ────────────────── */
 const fmtMXN = n => "$" + new Intl.NumberFormat("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
 const fmtInt = n => new Intl.NumberFormat("es-MX").format(Math.round(n));
 
 function setStatus(state, text){
-  const dot = document.getElementById("dot");
-  const lbl = document.getElementById("statusLabel");
-  dot.className = "dot " + state;
-  lbl.textContent = text;
+  document.getElementById("dot").className = "dot " + state;
+  document.getElementById("statusLabel").textContent = text;
 }
 function showMsg(text, isError){
   const b = document.getElementById("msgBox");
@@ -209,34 +172,66 @@ function showMsg(text, isError){
   b.className = "msg-box show" + (isError ? " err" : "");
 }
 
-/* ── OBTENER NAV DESDE HOJA 3 ─────────────────────────── */
-async function fetchNAV(){
-  // Usamos la Hoja 3 — la última fila con un valor en columna B (NAV x acción) es el NAV actual
-  const res = await fetch(HISTORY_URL);
-  if(!res.ok) throw new Error("No se pudo conectar (HTTP " + res.status + ")");
-  const text = await res.text();
-  const rows = parseCSV(text);
+/* ── LEER NAV VÍA JSONP (evita CORS) ──────
+   Google Visualization API permite leer Sheets
+   desde cualquier dominio usando JSONP.
+   Leemos la columna B (NAV x acción) de Hoja 3
+   y tomamos el último valor no vacío.
+────────────────────────────────────────────── */
+function fetchNAVviaJSONP(){
+  return new Promise((resolve, reject) => {
+    const callbackName = "gviz_cb_" + Date.now();
+    const query = encodeURIComponent("select B where B is not null order by A");
+    const url = `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/gviz/tq?tqx=out:json&tq=${query}&gid=${GID_H3}&jsonp=${callbackName}`;
 
-  let lastNAV = null;
-  rows.forEach(r => {
-    const nav = toNum(r[1]);
-    if(!isNaN(nav) && nav > 0) lastNAV = nav;
+    const timeout = setTimeout(()=>{
+      cleanup();
+      reject(new Error("Tiempo de espera agotado — revisa tu conexión"));
+    }, 12000);
+
+    function cleanup(){
+      clearTimeout(timeout);
+      delete window[callbackName];
+      const s = document.getElementById("gviz_script");
+      if(s) s.remove();
+    }
+
+    window[callbackName] = function(data){
+      cleanup();
+      try {
+        const rows = data.table.rows;
+        if(!rows || rows.length === 0) return reject(new Error("Sin datos en la hoja"));
+        // La última fila con valor en columna B es el NAV más reciente
+        let lastNAV = null;
+        rows.forEach(r => {
+          if(r.c && r.c[0] && r.c[0].v != null){
+            lastNAV = parseFloat(r.c[0].v);
+          }
+        });
+        if(lastNAV === null || isNaN(lastNAV)) return reject(new Error("No se encontró el NAV"));
+        resolve(lastNAV);
+      } catch(e) {
+        reject(new Error("Error al leer datos: " + e.message));
+      }
+    };
+
+    const script = document.createElement("script");
+    script.id = "gviz_script";
+    script.src = url;
+    script.onerror = () => { cleanup(); reject(new Error("No se pudo conectar a Google Sheets")); };
+    document.head.appendChild(script);
   });
-
-  if(lastNAV === null) throw new Error("No se encontró el NAV en la hoja de historial");
-  return lastNAV;
 }
 
-/* ── RENDERIZAR ───────────────────────────────────────── */
+/* ── RENDER ─────────────────── */
 async function render(){
-  // Fecha
   document.getElementById("greetingDate").textContent =
     new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 
   setStatus("loading","Cargando");
 
   try {
-    const nav = await fetchNAV();
+    const nav = await fetchNAVviaJSONP();
 
     const valorActual      = ACCIONISTA.acciones * nav;
     const inversionInicial = ACCIONISTA.acciones * ACCIONISTA.precioPromedio;
@@ -244,18 +239,15 @@ async function render(){
     const pnlPct           = ((nav - ACCIONISTA.precioPromedio) / ACCIONISTA.precioPromedio) * 100;
     const isUp             = pnlPct >= 0;
 
-    // Cards
     document.getElementById("cardShares").textContent = fmtInt(ACCIONISTA.acciones);
     document.getElementById("cardValue").textContent  = fmtMXN(valorActual);
     document.getElementById("cardNav").textContent    = fmtMXN(nav);
     document.getElementById("cardCost").textContent   = fmtMXN(ACCIONISTA.precioPromedio);
 
-    // Rendimiento
     const perf = document.getElementById("perfValue");
     perf.className = "perf-value " + (isUp ? "up" : "down");
     perf.textContent = (isUp?"+":"") + pnlPct.toFixed(2) + "% · " + (isUp?"+":"") + fmtMXN(pnlPesos);
 
-    // Detalle
     document.getElementById("detailShares").textContent   = fmtInt(ACCIONISTA.acciones) + " acciones";
     document.getElementById("detailCost").textContent     = fmtMXN(ACCIONISTA.precioPromedio) + " / acción";
     document.getElementById("detailInvested").textContent = fmtMXN(inversionInicial);
@@ -276,13 +268,13 @@ async function render(){
 
   } catch(e) {
     setStatus("error","Sin conexión");
-    showMsg("No se pudo obtener el NAV del fondo: " + e.message + ". Intenta recargar la página en unos minutos.", true);
+    showMsg("No se pudo obtener el NAV: " + e.message + ". Intenta recargar la página.", true);
     console.error(e);
   }
 }
 
 render();
-setInterval(render, 60000); // actualizar cada minuto
+setInterval(render, 60000);
 </script>
 </body>
 </html>
