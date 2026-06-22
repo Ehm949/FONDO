@@ -26,56 +26,72 @@
   --mono:    'JetBrains Mono', monospace;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+body { background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; min-height: 100vh; }
 
 .page { max-width: 680px; margin: 0 auto; padding: 0 24px 80px; }
 
-/* Masthead */
-.masthead { border-bottom: 2px solid var(--ink); padding: 32px 0 20px; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-.mast-name { font-family: var(--serif); font-size: 20px; font-weight: 500; }
-.mast-sub  { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); margin-top: 3px; }
-.mast-badge { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); border: 1px solid var(--rule); padding: 7px 12px; background: var(--white); }
+.masthead {
+  border-bottom: 2px solid var(--ink);
+  padding: 32px 0 20px;
+  display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.mast-name  { font-family: var(--serif); font-size: 20px; font-weight: 500; }
+.mast-sub   { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); margin-top: 3px; }
+.status-badge {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-dim); border: 1px solid var(--rule); padding: 7px 12px; background: var(--white);
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-dim); flex-shrink: 0; }
+.dot.loading { background: #B8860B; animation: blink 1s ease-in-out infinite; }
+.dot.ok      { background: var(--up); animation: blink 2.5s ease-in-out infinite; }
+.dot.error   { background: var(--down); animation: none; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
 
-/* Saludo */
 .greeting { padding: 44px 0 32px; border-bottom: 1px solid var(--rule); }
-.greeting-name { font-family: var(--serif); font-size: clamp(28px, 6vw, 44px); font-weight: 400; margin-bottom: 6px; }
-.greeting-date  { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--ink-dim); }
+.greeting-name { font-family: var(--serif); font-size: clamp(28px,6vw,44px); font-weight: 400; margin-bottom: 6px; }
+.greeting-date { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--ink-dim); }
 
-/* Tarjetas principales */
-.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 32px 0 0; }
+.cards {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 32px 0 0;
+}
 @media(max-width:480px){ .cards { grid-template-columns: 1fr; } }
 .card { background: var(--white); padding: 22px 22px 20px; }
 .card-k { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 8px; }
 .card-v { font-family: var(--serif); font-size: 30px; font-weight: 500; color: var(--ink); line-height: 1.1; }
 .card-v.accent { color: var(--accent); }
 .card-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); margin-top: 6px; }
+.card-v.skeleton { color: var(--rule); }
 
-/* Rendimiento personal */
-.perf-row { display: flex; align-items: center; gap: 10px; margin-top: 28px; padding: 18px 0; border-top: 1px solid var(--rule-lt); border-bottom: 1px solid var(--rule-lt); }
-.perf-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); flex: 1; }
-.perf-value { font-family: var(--mono); font-size: 18px; font-weight: 500; }
+.perf-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 28px; padding: 18px 0;
+  border-top: 1px solid var(--rule-lt); border-bottom: 1px solid var(--rule-lt);
+  flex-wrap: wrap;
+}
+.perf-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); }
+.perf-value { font-family: var(--mono); font-size: 20px; font-weight: 500; }
 .perf-value.up   { color: var(--up); }
 .perf-value.down { color: var(--down); }
+.perf-value.neutral { color: var(--ink-dim); }
 
-/* Detalle */
 .detail { margin-top: 36px; }
 .detail-title { font-family: var(--serif); font-size: 17px; font-weight: 400; margin-bottom: 16px; }
-.detail-row { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--rule-lt); }
+.detail-row { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--rule-lt); gap: 12px; }
 .detail-row:last-child { border-bottom: none; }
 .detail-k { font-size: 13px; color: var(--ink-mid); }
-.detail-v { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+.detail-v { font-family: var(--mono); font-size: 13px; color: var(--ink); text-align: right; }
 
-/* NAV history chip */
-.nav-chip { display: inline-flex; align-items: baseline; gap: 8px; background: var(--white); border: 1px solid var(--rule); padding: 10px 16px; margin-top: 28px; }
-.nav-chip-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); }
-.nav-chip-val   { font-family: var(--mono); font-size: 16px; color: var(--ink); }
+.update-row { display: flex; align-items: center; gap: 10px; margin-top: 28px; }
+.update-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); }
+.update-val   { font-family: var(--mono); font-size: 12px; color: var(--ink-mid); }
 
-/* Footer */
+.msg-box { margin-top: 20px; padding: 14px 16px; font-size: 13px; line-height: 1.6; border-left: 3px solid var(--rule); color: var(--ink-dim); display: none; }
+.msg-box.show { display: block; }
+.msg-box.err  { border-color: var(--down); background: var(--down-bg); color: var(--down); }
+
 .footnote { margin-top: 52px; padding-top: 20px; border-top: 1px solid var(--rule); font-size: 11px; color: var(--ink-dim); line-height: 1.8; }
-
-/* Status dot */
-.live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--up); margin-right: 6px; animation: blink 2s ease-in-out infinite; vertical-align: middle; }
-@keyframes blink { 0%,100%{opacity:1}50%{opacity:.25} }
 </style>
 </head>
 <body>
@@ -86,11 +102,14 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); -w
       <div class="mast-name">Fondo Multiactivo</div>
       <div class="mast-sub">Estado de cuenta privado</div>
     </div>
-    <div class="mast-badge"><span class="live-dot" id="dot"></span><span id="liveLabel">Cargando</span></div>
+    <div class="status-badge">
+      <span class="dot loading" id="dot"></span>
+      <span id="statusLabel">Cargando</span>
+    </div>
   </header>
 
   <div class="greeting">
-    <div class="greeting-name" id="greetingName">Bienvenido</div>
+    <div class="greeting-name" id="greetingName">Hola, Mauricio</div>
     <div class="greeting-date" id="greetingDate">—</div>
   </div>
 
@@ -106,138 +125,145 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); -w
       <div class="card-sub">MXN</div>
     </div>
     <div class="card">
-      <div class="card-k">NAV por acción (hoy)</div>
+      <div class="card-k">NAV por acción hoy</div>
       <div class="card-v" id="cardNav">—</div>
       <div class="card-sub">MXN / acción</div>
     </div>
     <div class="card">
-      <div class="card-k">Precio promedio de compra</div>
+      <div class="card-k">Tu precio de compra</div>
       <div class="card-v" id="cardCost">—</div>
       <div class="card-sub">MXN / acción</div>
     </div>
   </div>
 
   <div class="perf-row">
-    <div class="perf-label">Ganancia / pérdida total sobre tu inversión</div>
-    <div class="perf-value" id="perfValue">—</div>
+    <div class="perf-label">Ganancia / pérdida sobre tu inversión</div>
+    <div class="perf-value neutral" id="perfValue">—</div>
   </div>
 
-  <div class="nav-chip">
-    <span class="nav-chip-label">Última actualización</span>
-    <span class="nav-chip-val" id="lastUpdate">—</span>
+  <div class="update-row">
+    <span class="update-label">Última actualización</span>
+    <span class="update-val" id="lastUpdate">—</span>
   </div>
 
   <div class="detail">
     <div class="detail-title">Resumen de tu cuenta</div>
-    <div class="detail-row"><span class="detail-k">Nombre</span><span class="detail-v" id="detailName">—</span></div>
+    <div class="detail-row"><span class="detail-k">Nombre</span><span class="detail-v">Mauricio Saabedra</span></div>
     <div class="detail-row"><span class="detail-k">Acciones</span><span class="detail-v" id="detailShares">—</span></div>
-    <div class="detail-row"><span class="detail-k">Precio promedio de compra</span><span class="detail-v" id="detailCost">—</span></div>
-    <div class="detail-row"><span class="detail-k">Inversión inicial total</span><span class="detail-v" id="detailInvested">—</span></div>
+    <div class="detail-row"><span class="detail-k">Precio de compra</span><span class="detail-v" id="detailCost">—</span></div>
+    <div class="detail-row"><span class="detail-k">Inversión inicial</span><span class="detail-v" id="detailInvested">—</span></div>
     <div class="detail-row"><span class="detail-k">Valor actual</span><span class="detail-v" id="detailValue">—</span></div>
     <div class="detail-row"><span class="detail-k">Ganancia / pérdida en pesos</span><span class="detail-v" id="detailPnL">—</span></div>
-    <div class="detail-row"><span class="detail-k">Rendimiento (%)</span><span class="detail-v" id="detailPct">—</span></div>
+    <div class="detail-row"><span class="detail-k">Rendimiento</span><span class="detail-v" id="detailPct">—</span></div>
   </div>
 
+  <div class="msg-box" id="msgBox"></div>
+
   <div class="footnote">
-    Este estado de cuenta es de uso exclusivo y confidencial. El valor de tu inversión se actualiza en tiempo real con base en el NAV (Valor Neto por Acción) del fondo. Para consultas, contacta al administrador del fondo.
+    Este estado de cuenta es de uso exclusivo y confidencial para Mauricio Saabedra. El valor se actualiza en tiempo real con base en el NAV del fondo. Para consultas contacta al administrador.
   </div>
 
 </div>
 
 <script>
-/* ================================================================
-   DATOS DEL ACCIONISTA — editar para cada persona
-   ================================================================ */
+/* ── DATOS DEL ACCIONISTA ──────────────────────────────── */
 const ACCIONISTA = {
-  nombre:         "Mauricio Saavedra",          // nombre completo
-  acciones:       10,                  // cuántas acciones tiene esta persona
-  precioPromedio: $0.2949,                 // precio promedio al que compró (MXN/acción)
+  nombre:         "Mauricio Saabedra",
+  acciones:       100,
+  precioPromedio: 0.29495,   // MXN por acción
 };
 
-/* URL de la Hoja 1 — config (acciones totales, tipo de cambio) */
-const CONFIG_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=0&single=true&output=csv";
-/* URL de la Hoja 2 — posiciones (para calcular NAV = total portafolio / acciones emitidas) */
-const POSITIONS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=2077970112&single=true&output=csv";
+/* ── FUENTES DE DATOS ─────────────────────────────────── */
+// Hoja 3 — tiene el NAV más reciente en la columna B (última fila con dato)
+const HISTORY_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=1974841137&single=true&output=csv";
 
-/* ── PARSEO ──────────────────────────────────────────── */
+/* ── UTILIDADES ───────────────────────────────────────── */
+function toNum(s){
+  const c = String(s||"").replace(/[^0-9.\-]/g,"");
+  return c === "" ? NaN : parseFloat(c);
+}
 function parseCSV(text){
-  return text.trim().split("\n").map(line=>{
-    const cells=[]; let cur="",inQ=false;
+  return text.trim().split("\n").map(line => {
+    const cells = []; let cur = "", inQ = false;
     for(const ch of line){
-      if(ch==='"'){inQ=!inQ;continue;}
-      if(ch===','&&!inQ){cells.push(cur.trim());cur="";continue;}
-      cur+=ch;
+      if(ch==='"'){ inQ=!inQ; continue; }
+      if(ch===','&&!inQ){ cells.push(cur.trim()); cur=""; continue; }
+      cur += ch;
     }
-    cells.push(cur.trim()); return cells;
+    cells.push(cur.trim());
+    return cells;
   });
 }
-function toNum(s){ const c=String(s||"").replace(/[^0-9.\-]/g,""); return c===""?NaN:parseFloat(c); }
-
-const fmtMXN = n => new Intl.NumberFormat("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+const fmtMXN = n => "$" + new Intl.NumberFormat("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
 const fmtInt = n => new Intl.NumberFormat("es-MX").format(Math.round(n));
 
-async function fetchNAV(){
-  // Obtener acciones emitidas totales (Hoja 1) y valor total del portafolio (Hoja 2)
-  const [cfgRes, posRes] = await Promise.all([fetch(CONFIG_URL), fetch(POSITIONS_URL)]);
-  if(!cfgRes.ok || !posRes.ok) throw new Error("No se pudo conectar al fondo");
-
-  const cfgRows = parseCSV(await cfgRes.text());
-  let sharesTotal = null;
-  cfgRows.forEach(r=>{ if((r[0]||"").toLowerCase().includes("accion")) sharesTotal=toNum(r[1]); });
-
-  const posRows = parseCSV(await posRes.text());
-  let totalMXN = 0;
-  posRows.forEach(r=>{
-    const ticker=(r[0]||"").trim();
-    if(!ticker||ticker.toLowerCase()==="tiket"||ticker==="") return;
-    const val=toNum(r[6]);
-    if(!isNaN(val)) totalMXN+=val;
-  });
-
-  if(!sharesTotal||sharesTotal===0) throw new Error("No se encontró el número de acciones emitidas");
-  return { nav: totalMXN/sharesTotal, sharesTotal, totalMXN };
+function setStatus(state, text){
+  const dot = document.getElementById("dot");
+  const lbl = document.getElementById("statusLabel");
+  dot.className = "dot " + state;
+  lbl.textContent = text;
+}
+function showMsg(text, isError){
+  const b = document.getElementById("msgBox");
+  b.textContent = text;
+  b.className = "msg-box show" + (isError ? " err" : "");
 }
 
-async function render(){
-  const dot=document.getElementById("dot");
-  const lbl=document.getElementById("liveLabel");
+/* ── OBTENER NAV DESDE HOJA 3 ─────────────────────────── */
+async function fetchNAV(){
+  // Usamos la Hoja 3 — la última fila con un valor en columna B (NAV x acción) es el NAV actual
+  const res = await fetch(HISTORY_URL);
+  if(!res.ok) throw new Error("No se pudo conectar (HTTP " + res.status + ")");
+  const text = await res.text();
+  const rows = parseCSV(text);
 
-  // Saludo
-  document.getElementById("greetingName").textContent=
-    "Hola, " + ACCIONISTA.nombre.split(" ")[0];
-  document.getElementById("greetingDate").textContent=
+  let lastNAV = null;
+  rows.forEach(r => {
+    const nav = toNum(r[1]);
+    if(!isNaN(nav) && nav > 0) lastNAV = nav;
+  });
+
+  if(lastNAV === null) throw new Error("No se encontró el NAV en la hoja de historial");
+  return lastNAV;
+}
+
+/* ── RENDERIZAR ───────────────────────────────────────── */
+async function render(){
+  // Fecha
+  document.getElementById("greetingDate").textContent =
     new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 
-  try{
-    const {nav} = await fetchNAV();
+  setStatus("loading","Cargando");
 
-    const valorActual   = ACCIONISTA.acciones * nav;
+  try {
+    const nav = await fetchNAV();
+
+    const valorActual      = ACCIONISTA.acciones * nav;
     const inversionInicial = ACCIONISTA.acciones * ACCIONISTA.precioPromedio;
-    const pnlPesos      = valorActual - inversionInicial;
-    const pnlPct        = ((nav - ACCIONISTA.precioPromedio) / ACCIONISTA.precioPromedio) * 100;
-    const isUp          = pnlPct >= 0;
+    const pnlPesos         = valorActual - inversionInicial;
+    const pnlPct           = ((nav - ACCIONISTA.precioPromedio) / ACCIONISTA.precioPromedio) * 100;
+    const isUp             = pnlPct >= 0;
 
-    // Hero cards
+    // Cards
     document.getElementById("cardShares").textContent = fmtInt(ACCIONISTA.acciones);
-    document.getElementById("cardValue").textContent  = "$" + fmtMXN(valorActual);
-    document.getElementById("cardNav").textContent    = "$" + fmtMXN(nav);
-    document.getElementById("cardCost").textContent   = "$" + fmtMXN(ACCIONISTA.precioPromedio);
+    document.getElementById("cardValue").textContent  = fmtMXN(valorActual);
+    document.getElementById("cardNav").textContent    = fmtMXN(nav);
+    document.getElementById("cardCost").textContent   = fmtMXN(ACCIONISTA.precioPromedio);
 
     // Rendimiento
     const perf = document.getElementById("perfValue");
-    perf.className = "perf-value " + (isUp?"up":"down");
-    perf.textContent = (isUp?"+":"")+pnlPct.toFixed(2)+"% ("+(isUp?"+":"")+fmtMXN(pnlPesos)+" MXN)";
+    perf.className = "perf-value " + (isUp ? "up" : "down");
+    perf.textContent = (isUp?"+":"") + pnlPct.toFixed(2) + "% · " + (isUp?"+":"") + fmtMXN(pnlPesos);
 
     // Detalle
-    document.getElementById("detailName").textContent     = ACCIONISTA.nombre;
     document.getElementById("detailShares").textContent   = fmtInt(ACCIONISTA.acciones) + " acciones";
-    document.getElementById("detailCost").textContent     = "$" + fmtMXN(ACCIONISTA.precioPromedio) + " / acción";
-    document.getElementById("detailInvested").textContent = "$" + fmtMXN(inversionInicial) + " MXN";
-    document.getElementById("detailValue").textContent    = "$" + fmtMXN(valorActual) + " MXN";
+    document.getElementById("detailCost").textContent     = fmtMXN(ACCIONISTA.precioPromedio) + " / acción";
+    document.getElementById("detailInvested").textContent = fmtMXN(inversionInicial);
+    document.getElementById("detailValue").textContent    = fmtMXN(valorActual);
 
     const pnlEl = document.getElementById("detailPnL");
     pnlEl.style.color = isUp ? "var(--up)" : "var(--down)";
-    pnlEl.textContent = (isUp?"+":"") + fmtMXN(pnlPesos) + " MXN";
+    pnlEl.textContent = (isUp?"+":"") + fmtMXN(pnlPesos);
 
     const pctEl = document.getElementById("detailPct");
     pctEl.style.color = isUp ? "var(--up)" : "var(--down)";
@@ -246,19 +272,17 @@ async function render(){
     document.getElementById("lastUpdate").textContent =
       new Date().toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short"});
 
-    dot.style.background = "var(--up)";
-    lbl.textContent = "Actualizado";
+    setStatus("ok","En vivo");
 
-  } catch(e){
-    dot.style.background = "var(--down)";
-    dot.style.animation  = "none";
-    lbl.textContent = "Sin conexión";
-    document.getElementById("lastUpdate").textContent = "Error: " + e.message;
+  } catch(e) {
+    setStatus("error","Sin conexión");
+    showMsg("No se pudo obtener el NAV del fondo: " + e.message + ". Intenta recargar la página en unos minutos.", true);
+    console.error(e);
   }
 }
 
 render();
-setInterval(render, 60000);
+setInterval(render, 60000); // actualizar cada minuto
 </script>
 </body>
 </html>
