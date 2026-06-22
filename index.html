@@ -224,41 +224,27 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); -w
     </div>
   </header>
 
-  <!-- HERO NAV -->
-  <section class="hero">
-    <div class="hero-left">
-      <div class="nav-eyebrow">Fondo Multiactivo — desempeño del día</div>
-      <div class="nav-figure-row">
-        <div class="nav-change" id="navChange" style="font-size:clamp(36px,6vw,64px);padding:0;margin:0;border-radius:0;background:none;">—</div>
-      </div>
-      <div style="font-family:var(--mono);font-size:12px;color:var(--ink-dim);margin-top:10px;" id="navSubtext">vs. sesión anterior</div>
-    </div>
-    <div class="hero-right">
-      <div class="hero-date" id="heroDate">—</div>
-    </div>
-  </section>
-
-  <!-- GRÁFICA PRINCIPAL DINÁMICA DE NAV -->
+  <!-- GRÁFICA ACUMULADO HISTÓRICO — carta de presentación del fondo -->
   <div class="main-chart-section">
     <div class="main-chart-header">
       <div>
-        <div class="main-chart-nav">Rendimiento del periodo</div>
+        <div class="main-chart-nav">Rendimiento acumulado del fondo</div>
         <div class="main-chart-pct flat" id="mainChartPct">—</div>
-        <div class="main-chart-label" id="mainChartLabel">Selecciona un rango</div>
+        <div class="main-chart-label" id="mainChartLabel">—</div>
       </div>
       <div class="range-tabs" id="rangeTabs">
         <button class="range-tab" data-range="1">1D</button>
         <button class="range-tab" data-range="5">5D</button>
-        <button class="range-tab active" data-range="30">1M</button>
+        <button class="range-tab" data-range="30">1M</button>
         <button class="range-tab" data-range="90">3M</button>
         <button class="range-tab" data-range="180">6M</button>
         <button class="range-tab" data-range="365">1A</button>
-        <button class="range-tab" data-range="ytd">YTD</button>
+        <button class="range-tab active" data-range="ytd">YTD</button>
         <button class="range-tab" data-range="all">Todo</button>
       </div>
     </div>
     <div class="main-chart-wrap"><canvas id="mainNavChart"></canvas></div>
-    <div class="period-stats" id="periodStats">
+    <div class="period-stats">
       <div class="period-stat"><div class="period-stat-k">Mejor punto del período</div><div class="period-stat-v up" id="statMax">—</div></div>
       <div class="period-stat"><div class="period-stat-k">Peor punto del período</div><div class="period-stat-v down" id="statMin">—</div></div>
       <div class="period-stat"><div class="period-stat-k">Días positivos</div><div class="period-stat-v up" id="statPosDays">—</div></div>
@@ -325,15 +311,6 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); -w
         </div>
         <div class="chart-wrap sm"><canvas id="pnlChart2026"></canvas></div>
       </div>
-    </div>
-
-    <!-- Acumulado total -->
-    <div class="card monthly-card">
-      <div class="pnl-card-head">
-        <div class="pnl-card-title">Acumulado histórico</div>
-        <div class="pnl-badge" id="badgeTotal">—</div>
-      </div>
-      <div class="chart-wrap"><canvas id="pnlChartTotal"></canvas></div>
     </div>
 
     <!-- Ganancia / pérdida por mes -->
@@ -772,20 +749,6 @@ function renderHero(positions,shares,history){
   const nav=total/shares;
   document.getElementById("metaUpdated").textContent=new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
   document.getElementById("metaPositions").textContent=positions.filter(p=>p.valueMXN>0).length+" activos";
-
-  const prevNav=history.length>1?history.at(-2).nav:null;
-  const chgEl=document.getElementById("navChange");
-  if(prevNav){
-    const pct=((nav-prevNav)/prevNav)*100;
-    const isUp=pct>=0;
-    chgEl.style.color=isUp?"var(--up)":"var(--down)";
-    chgEl.textContent=(isUp?"▲ +":"▼ ")+pct.toFixed(3)+"%";
-    document.getElementById("navSubtext").textContent="variación vs. sesión anterior";
-  } else {
-    chgEl.style.color="var(--ink-dim)";
-    chgEl.textContent="—";
-  }
-  document.getElementById("heroDate").textContent=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 }
 
 /* ── RENDER ALLOC ────────────────────────────────────── */
@@ -870,25 +833,23 @@ function renderPnL(history){
     setBadge("badge2026",pctSeries.at(-1).pct);
   }
 
-  // Total histórico en %
+  // Total acumulado — badge y stats (la gráfica está arriba como carta de presentación)
   const totalPctSeries=toPctSeries(total,startVal);
-  pnlInstTotal=makeLineChart("pnlChartTotal",totalPctSeries,pnlInstTotal,"#4A4A46");
-  setBadge("badgeTotal",totalPctSeries.at(-1).pct);
+  setBadge("badgeTotal", totalPctSeries.at(-1)?.pct||0);
 
   // Barras mensuales — usa EXCLUSIVAMENTE tus cifras de la columna J
-  // Son tus cifras oficiales y son la fuente de verdad para este gráfico
   const officialMonthly=history.monthlyOfficial||{};
   const monthlyPct = Object.entries(officialMonthly)
     .sort(([a],[b])=>a.localeCompare(b))
     .map(([key,val])=>{
-      const d=new Date(key+"-15"); // día 15 para evitar problemas de zona horaria
+      const d=new Date(key+"-15");
       const label=d.toLocaleDateString("es-MX",{month:"short",year:"2-digit"});
       return {key,label,value:val,pct:(val/startVal)*100};
     });
   barInst=makeBarChart("monthlyBarChart",monthlyPct,barInst);
 
-  // Stats en %
-  const totalPct=totalPctSeries.at(-1).pct;
+  // Stats resumen del historial completo
+  const totalPct=totalPctSeries.at(-1)?.pct||0;
   const best=totalPctSeries.reduce((b,p)=>p.dailyPct>b.dailyPct?p:b,totalPctSeries[0]);
   const worst=totalPctSeries.reduce((w,p)=>p.dailyPct<w.dailyPct?p:w,totalPctSeries[0]);
   const fmtd=d=>d.toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"});
@@ -928,7 +889,7 @@ async function loadData(){
     setLive(false,true);
     renderHero(positions,1000000,fullHistory);
     renderAlloc(positions);
-    renderMainChart(fullHistory, "30");
+    renderMainChart(fullHistory, "ytd");
     showError("Modo demostración con datos simulados. Conecta tus Google Sheets en CONFIG para ver datos reales.");
     return;
   }
@@ -945,7 +906,7 @@ async function loadData(){
     setLive(true,false);
     renderHero(positions,shares,history);
     renderAlloc(positions);
-    renderMainChart(history, "30"); // gráfica principal — rango activo por defecto
+    renderMainChart(history, "ytd"); // acumulado histórico — YTD por defecto
     if(pnlOpen){renderPnL(history);pnlRendered=true;}
     else{pnlRendered=false;}
   } catch(e){
