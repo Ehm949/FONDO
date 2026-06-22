@@ -686,22 +686,16 @@ function renderPnL(history){
   pnlInstTotal=makeLineChart("pnlChartTotal",totalPctSeries,pnlInstTotal,"#4A4A46");
   setBadge("badgeTotal",totalPctSeries.at(-1).pct);
 
-  // Barras mensuales — usa tus cifras oficiales (col. J) si están disponibles
+  // Barras mensuales — usa EXCLUSIVAMENTE tus cifras de la columna J
+  // Son tus cifras oficiales y son la fuente de verdad para este gráfico
   const officialMonthly=history.monthlyOfficial||{};
-  const rawMonthly=computeMonthlyPnL(byYear);
-  const monthlyPct=rawMonthly.map(m=>{
-    const officialVal=officialMonthly[m.key];
-    const val=officialVal!==undefined?officialVal:m.value;
-    return {...m,value:val,pct:(val/startVal)*100};
-  });
-  // Agregar meses del oficial que no estén en el calculado
-  Object.entries(officialMonthly).forEach(([key,val])=>{
-    if(!monthlyPct.find(m=>m.key===key)){
-      const d=new Date(key+"-01");
-      monthlyPct.push({key,label:d.toLocaleDateString("es-MX",{month:"short",year:"2-digit"}),value:val,pct:(val/startVal)*100});
-    }
-  });
-  monthlyPct.sort((a,b)=>a.key.localeCompare(b.key));
+  const monthlyPct = Object.entries(officialMonthly)
+    .sort(([a],[b])=>a.localeCompare(b))
+    .map(([key,val])=>{
+      const d=new Date(key+"-15"); // día 15 para evitar problemas de zona horaria
+      const label=d.toLocaleDateString("es-MX",{month:"short",year:"2-digit"});
+      return {key,label,value:val,pct:(val/startVal)*100};
+    });
   barInst=makeBarChart("monthlyBarChart",monthlyPct,barInst);
 
   // Stats en %
