@@ -210,37 +210,86 @@ function parseSheet4(rows){
 /* ── RENDER ────────────────────────────────────────────── */
 let barInst=null, donutInst=null;
 
+function addWeightsAndContrib(sectors){
+  // Peso de cada sector = su valor final / suma de todos los valores finales
+  const totalEnd = sectors.reduce((s,x)=>s+Math.max(x.end,0),0)||1;
+  return sectors.map(s=>{
+    const weight = (Math.max(s.end,0)/totalEnd)*100;        // % del portafolio
+    const contrib = (s.pct/100) * (weight/100) * 100;       // contribución ponderada en %
+    return {...s, weight, contrib};
+  });
+}
+
 function renderSummary(sectors){
-  const avgPct = sectors.reduce((s,x)=>s+x.pct,0)/sectors.length;
-  const best  = sectors.reduce((b,x)=>x.pct>b.pct?x:b, sectors[0]);
-  const worst = sectors.reduce((w,x)=>x.pct<w.pct?x:w, sectors[0]);
-  const pos   = sectors.filter(x=>x.pct>0).length;
-  const neg   = sectors.filter(x=>x.pct<0).length;
+  const totalContrib = sectors.reduce((s,x)=>s+x.contrib,0);
+  const best  = sectors.reduce((b,x)=>x.contrib>b.contrib?x:b, sectors[0]);
+  const worst = sectors.reduce((w,x)=>x.contrib<w.contrib?x:w, sectors[0]);
+  const pos   = sectors.filter(x=>x.contrib>0).length;
+  const neg   = sectors.filter(x=>x.contrib<0).length;
 
   document.getElementById("summaryGrid").innerHTML=`
-    <div class="summary-cell"><div class="summary-k">Promedio de rendimiento</div><div class="summary-v ${avgPct>=0?'up':'down'}">${fmtPct(avgPct)}</div></div>
-    <div class="summary-cell"><div class="summary-k">Mejor sector</div><div class="summary-v up">${best.name}<br><span style="font-size:14px">${fmtPct(best.pct)}</span></div></div>
-    <div class="summary-cell"><div class="summary-k">Peor sector</div><div class="summary-v down">${worst.name}<br><span style="font-size:14px">${fmtPct(worst.pct)}</span></div></div>
-    <div class="summary-cell"><div class="summary-k">Sectores en positivo</div><div class="summary-v up">${pos} de ${sectors.length}</div></div>
-    <div class="summary-cell"><div class="summary-k">Sectores en negativo</div><div class="summary-v ${neg>0?'down':'up'}">${neg} de ${sectors.length}</div></div>`;
+    <div class="summary-cell"><div class="summary-k">Impacto neto en el fondo</div><div class="summary-v ${totalContrib>=0?'up':'down'}">${fmtPct(totalContrib)}</div></div>
+    <div class="summary-cell"><div class="summary-k">Mayor aportación</div><div class="summary-v up">${best.name}<br><span style="font-size:14px">+${best.contrib.toFixed(2)}% al fondo</span></div></div>
+    <div class="summary-cell"><div class="summary-k">Mayor detracción</div><div class="summary-v down">${worst.name}<br><span style="font-size:14px">${worst.contrib.toFixed(2)}% al fondo</span></div></div>
+    <div class="summary-cell"><div class="summary-k">Sectores positivos</div><div class="summary-v up">${pos} de ${sectors.length}</div></div>
+    <div class="summary-cell"><div class="summary-k">Sectores negativos</div><div class="summary-v ${neg>0?'down':'up'}">${neg} de ${sectors.length}</div></div>`;
 }
 
 function renderBarChart(sectors){
   if(barInst) barInst.destroy();
-  const colors=sectors.map(s=>s.pct>=0?"rgba(45,107,26,0.8)":"rgba(139,32,0,0.8)");
-  const borders=sectors.map(s=>s.pct>=0?"#2D6B1A":"#8B2000");
+
+  // Ordenar por contribución absoluta para que el más impactante esté primero
+  const sorted = [...sectors].sort((a,b)=>Math.abs(b.contrib)-Math.abs(a.contrib));
+
+  const colorsRend  = sorted.map(s=>s.pct>=0?"rgba(45,107,26,0.25)":"rgba(139,32,0,0.25)");
+  const bordersRend = sorted.map(s=>s.pct>=0?"#2D6B1A":"#8B2000");
+  const colorsContr = sorted.map(s=>s.contrib>=0?"rgba(45,107,26,0.85)":"rgba(139,32,0,0.85)");
+  const bordersContr= sorted.map(s=>s.contrib>=0?"#2D6B1A":"#8B2000");
+
   barInst=new Chart(document.getElementById("barChart"),{
     type:"bar",
-    data:{labels:sectors.map(s=>s.name),datasets:[{
-      data:sectors.map(s=>s.pct),
-      backgroundColor:colors,borderColor:borders,borderWidth:1.5,borderRadius:2
-    }]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(c.raw>=0?"+":"")+c.raw.toFixed(2)+"%"}}},
+    data:{
+      labels:sorted.map(s=>s.name),
+      datasets:[
+        {
+          label:"Rendimiento del sector",
+          data:sorted.map(s=>s.pct),
+          backgroundColor:colorsRend, borderColor:bordersRend,
+          borderWidth:1.5, borderRadius:2,
+        },
+        {
+          label:"Contribución al fondo",
+          data:sorted.map(s=>s.contrib),
+          backgroundColor:colorsContr, borderColor:bordersContr,
+          borderWidth:1.5, borderRadius:2,
+        }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{
+          display:true,
+          labels:{font:{family:"JetBrains Mono",size:10},color:"#4A4A46",padding:16,
+            generateLabels: chart => [
+              {text:"Rendimiento del sector (sin ponderar)", fillStyle:"rgba(45,107,26,0.25)", strokeStyle:"#2D6B1A", lineWidth:1.5, fontColor:"#4A4A46"},
+              {text:"Contribución real al fondo (ponderada por peso)", fillStyle:"rgba(45,107,26,0.85)", strokeStyle:"#2D6B1A", lineWidth:1.5, fontColor:"#4A4A46"},
+            ]
+          }
+        },
+        tooltip:{callbacks:{
+          label:c=>{
+            const s=sorted[c.dataIndex];
+            if(c.datasetIndex===0) return `Rendimiento: ${fmtPct(s.pct)} (peso: ${s.weight.toFixed(1)}%)`;
+            return `Contribución al fondo: ${s.contrib>=0?'+':''}${s.contrib.toFixed(2)}%`;
+          }
+        }}
+      },
       scales:{
-        x:{grid:{display:false},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:10}}},
-        y:{grid:{color:"#ECEAE4"},border:{dash:[3,3]},
-          ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:10},callback:v=>v.toFixed(1)+"%"},
+        x:{grid:{display:false},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},maxRotation:20}},
+        y:{
+          grid:{color:"#ECEAE4"},border:{dash:[3,3]},
+          ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},callback:v=>v.toFixed(1)+"%"},
           afterDataLimits:a=>{const m=Math.max(Math.abs(a.min),Math.abs(a.max))*1.15;a.min=-m;a.max=m;}
         }
       }
@@ -268,31 +317,48 @@ function renderDonut(sectors){
 function renderCards(sectors){
   const grid=document.getElementById("sectorGrid");
   grid.innerHTML="";
-  sectors.forEach(s=>{
-    const isUp=s.pct>=0;
-    const barW=Math.min(Math.abs(s.pct)/35*100,100);
+  // Ordenar por contribución absoluta
+  const sorted=[...sectors].sort((a,b)=>Math.abs(b.contrib)-Math.abs(a.contrib));
+  sorted.forEach(s=>{
+    const isUpSector = s.pct>=0;
+    const isUpContrib = s.contrib>=0;
+    const barW=Math.min(Math.abs(s.contrib)/5*100,100); // escala: 5% = barra llena
     const card=document.createElement("div"); card.className="sector-card";
     card.innerHTML=`
       <div class="sector-top">
         <div class="sector-dot" style="background:${s.color}"></div>
         <div class="sector-name">${s.name}</div>
-        <div class="sector-pct ${isUp?'up':'down'}">${fmtPct(s.pct)}</div>
+        <div style="text-align:right">
+          <div class="sector-pct ${isUpContrib?'up':'down'}" style="font-size:22px">${isUpContrib?'+':''}${s.contrib.toFixed(2)}%</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--ink-dim);margin-top:2px;">impacto al fondo</div>
+        </div>
       </div>
       <div class="sector-bar-track">
-        <div class="sector-bar-fill" style="width:${barW}%;background:${isUp?'#2D6B1A':'#8B2000'}"></div>
+        <div class="sector-bar-fill" style="width:${barW}%;background:${isUpContrib?'#2D6B1A':'#8B2000'}"></div>
       </div>
-      <div style="font-family:var(--mono);font-size:11px;color:${isUp?'var(--up)':'var(--down)'};margin-top:4px;">
-        ${isUp?'▲ Ganancia neta':'▼ Pérdida neta'} en lo que va del año
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 0;margin-top:10px;">
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:3px;">Rend. propio</div>
+          <div style="font-family:var(--mono);font-size:14px;color:${isUpSector?'var(--up)':'var(--down)'};">${isUpSector?'+':''}${s.pct.toFixed(2)}%</div>
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:3px;">Peso actual</div>
+          <div style="font-family:var(--mono);font-size:14px;color:var(--ink);">${s.weight.toFixed(1)}%</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--ink-dim);line-height:1.6;">
+        ${isUpContrib?'▲':'▼'} ${isUpContrib?'Ganancia':'Pérdida'} neta en el fondo
       </div>`;
     grid.appendChild(card);
   });
 }
 
 function renderAll(sectors){
-  renderSummary(sectors);
-  renderBarChart(sectors);
-  renderDonut(sectors);
-  renderCards(sectors);
+  const enriched = addWeightsAndContrib(sectors);
+  renderSummary(enriched);
+  renderBarChart(enriched);
+  renderDonut(enriched);
+  renderCards(enriched);
   document.getElementById("periodLabel").textContent=
     "2 ene 2026 — "+new Date().toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"});
 }
