@@ -376,10 +376,18 @@ function toNum(s){
 }
 function parseDateMX(s){
   const str=String(s).trim();
-  // DD/MM/YYYY
+  // Número de serie de Excel (ej. 45658)
+  if(/^\d{5}(\.\d+)?$/.test(str)){
+    const n=parseFloat(str);
+    if(n>40000&&n<60000){
+      const d=new Date(Date.UTC(1899,11,30)+n*86400000);
+      return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
+    }
+  }
+  // DD/MM/YYYY o D/M/YYYY (con o sin ceros — Google Sheets exporta sin ceros: "1/1/2025")
   let m=str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if(m) return new Date(+m[3],+m[2]-1,+m[1]);
-  // DD/MM (sin año — asume año actual, retrocede si es futuro)
+  // DD/MM (sin año)
   m=str.match(/^(\d{1,2})\/(\d{1,2})$/);
   if(m){
     const day=+m[1],mon=+m[2]-1,now=new Date();
@@ -428,15 +436,31 @@ async function fetchHistory(){
   if(!res.ok) throw new Error("Hoja 3: HTTP "+res.status);
   const rows=parseCSV(await res.text());
   const out=[];
+  const monthlyOfficial={}; // columnas I y J — tus cifras mensuales oficiales
   rows.forEach(r=>{
-    if(!r[0]||!r[1]) return;
-    const d=parseDateMX(r[0]); if(!d) return;
-    const nav=toNum(r[1]); if(isNaN(nav)) return;
-    const totalValue=toNum(r[3]);
-    const flow=isNaN(toNum(r[4]))?0:toNum(r[4]);
-    out.push({date:d,nav,totalValue:isNaN(totalValue)?null:totalValue,flow});
+    // Columna A: fecha diaria → historial NAV
+    if(r[0]&&r[1]){
+      const d=parseDateMX(r[0]);
+      const nav=toNum(r[1]);
+      if(d&&!isNaN(nav)){
+        const totalValue=toNum(r[3]);
+        const flow=isNaN(toNum(r[4]))?0:toNum(r[4]);
+        out.push({date:d,nav,totalValue:isNaN(totalValue)?null:totalValue,flow});
+      }
+    }
+    // Columnas I y J: fecha del mes y ganancia/pérdida oficial
+    if(r[8]&&r[9]){
+      const dm=parseDateMX(r[8]);
+      const pnl=toNum(r[9]);
+      if(dm&&!isNaN(pnl)){
+        const key=dm.getFullYear()+"-"+String(dm.getMonth()+1).padStart(2,"0");
+        monthlyOfficial[key]=pnl;
+      }
+    }
   });
-  return out.sort((a,b)=>a.date-b.date);
+  const history=out.sort((a,b)=>a.date-b.date);
+  history.monthlyOfficial=monthlyOfficial; // adjuntar al array para uso posterior
+  return history;
 }
 
 /* ── PNL LOGIC ───────────────────────────────────────── */
@@ -644,9 +668,22 @@ function renderPnL(history){
   pnlInstTotal=makeLineChart("pnlChartTotal",totalPctSeries,pnlInstTotal,"#4A4A46");
   setBadge("badgeTotal",totalPctSeries.at(-1).pct);
 
-  // Barras mensuales en %
+  // Barras mensuales — usa tus cifras oficiales (col. J) si están disponibles
+  const officialMonthly=history.monthlyOfficial||{};
   const rawMonthly=computeMonthlyPnL(byYear);
-  const monthlyPct=rawMonthly.map(m=>({...m,pct:(m.value/startVal)*100}));
+  const monthlyPct=rawMonthly.map(m=>{
+    const officialVal=officialMonthly[m.key];
+    const val=officialVal!==undefined?officialVal:m.value;
+    return {...m,value:val,pct:(val/startVal)*100};
+  });
+  // Agregar meses del oficial que no estén en el calculado
+  Object.entries(officialMonthly).forEach(([key,val])=>{
+    if(!monthlyPct.find(m=>m.key===key)){
+      const d=new Date(key+"-01");
+      monthlyPct.push({key,label:d.toLocaleDateString("es-MX",{month:"short",year:"2-digit"}),value:val,pct:(val/startVal)*100});
+    }
+  });
+  monthlyPct.sort((a,b)=>a.key.localeCompare(b.key));
   barInst=makeBarChart("monthlyBarChart",monthlyPct,barInst);
 
   // Stats en %
