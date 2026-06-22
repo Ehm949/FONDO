@@ -625,68 +625,86 @@ function makeBarChart(canvasId, monthly, prevInst){
 /* ── GRÁFICA PRINCIPAL DINÁMICA ──────────────────────── */
 let mainNavInst = null;
 
-function filterByRange(history, range){
-  const sorted = [...history].filter(h=>h.nav!=null).sort((a,b)=>a.date-b.date);
-  if(!sorted.length) return [];
-  const now = sorted.at(-1).date;
-  if(range === "all") return sorted;
-  if(range === "ytd"){
-    const jan1 = new Date(now.getFullYear(), 0, 1);
-    return sorted.filter(h=>h.date >= jan1);
-  }
-  const cutoff = new Date(now);
-  cutoff.setDate(cutoff.getDate() - parseInt(range));
-  return sorted.filter(h=>h.date >= cutoff);
-}
-
 function renderMainChart(history, range){
-  const data = filterByRange(history, range);
-  if(!data.length) return;
+  // Calcular PnL ajustado por flujos para TODO el historial
+  const allPnL = computeTotalPnL(history);
+  if(!allPnL.length) return;
 
-  const first = data[0].nav;
-  const last  = data.at(-1).nav;
-  const pct   = ((last - first) / first) * 100;
-  const isUp  = pct >= 0;
+  // Filtrar al rango seleccionado
+  const sorted = allPnL.filter(p=>p.date!=null).sort((a,b)=>a.date-b.date);
+  const lastDate = sorted.at(-1).date;
+  let filtered;
+  if(range === "all"){
+    filtered = sorted;
+  } else if(range === "ytd"){
+    const jan1 = new Date(lastDate.getFullYear(), 0, 1);
+    filtered = sorted.filter(p=>p.date >= jan1);
+  } else {
+    const cutoff = new Date(lastDate);
+    cutoff.setDate(cutoff.getDate() - parseInt(range));
+    filtered = sorted.filter(p=>p.date >= cutoff);
+  }
+  if(!filtered.length) return;
 
-  // Actualizar cabecera
+  // El rendimiento del período arranca en 0 el primer día del rango.
+  // Usamos el valor acumulado del punto de inicio como base.
+  // startPortfolioValue = valor real del portafolio en el primer día del rango
+  // para convertir PnL absoluto a % relativo al inicio del período.
+  const historyMap = {};
+  history.filter(h=>h.totalValue!=null).forEach(h=>{
+    historyMap[h.date.toISOString().slice(0,10)] = h.totalValue;
+  });
+  const firstDate = filtered[0].date;
+  const firstDateKey = firstDate.toISOString().slice(0,10);
+  // Valor del portafolio al inicio del período (para normalizar a %)
+  const baseValue = historyMap[firstDateKey] || history.find(h=>h.totalValue!=null)?.totalValue || 1;
+  // PnL acumulado hasta el inicio del período (para restar y que empiece en 0)
+  const baseAccum = filtered[0].cumulative;
+
+  // Construir serie del período: PnL relativo al inicio del rango
+  const periodSeries = filtered.map(p => ({
+    date: p.date,
+    pct: ((p.cumulative - baseAccum) / baseValue) * 100,
+    dailyPct: (p.dailyPnL / baseValue) * 100,
+  }));
+
+  const totalPct = periodSeries.at(-1).pct;
+  const isUp = totalPct >= 0;
+
+  // Cabecera
   const pctEl = document.getElementById("mainChartPct");
   pctEl.className = "main-chart-pct " + (isUp?"up":"down");
-  pctEl.textContent = (isUp?"+":"") + pct.toFixed(3) + "%";
-
+  pctEl.textContent = (isUp?"+":"") + totalPct.toFixed(3) + "%";
   const rangeLabels = {"1":"último día","5":"últimos 5 días","30":"último mes","90":"últimos 3 meses","180":"últimos 6 meses","365":"último año","ytd":"lo que va del año","all":"desde el inicio del fondo"};
-  document.getElementById("mainChartLabel").textContent = rangeLabels[range] || range;
+  document.getElementById("mainChartLabel").textContent = "Rendimiento puro de mercado · " + (rangeLabels[range]||range);
 
-  // Calcular estadísticas del período
-  const maxPct = Math.max(...data.map(h=>((h.nav-first)/first)*100));
-  const minPct = Math.min(...data.map(h=>((h.nav-first)/first)*100));
-
-  // Días positivos/negativos: comparar cada día con el anterior
-  let pos=0, neg=0, bestPct=-Infinity, worstPct=Infinity;
-  let bestDate=null, worstDate=null;
-  for(let i=1;i<data.length;i++){
-    const d = ((data[i].nav - data[i-1].nav) / data[i-1].nav)*100;
-    if(d>0) pos++; else if(d<0) neg++;
-    if(d>bestPct){ bestPct=d; bestDate=data[i].date; }
-    if(d<worstPct){ worstPct=d; worstDate=data[i].date; }
-  }
+  // Estadísticas del período
+  const maxPct = Math.max(...periodSeries.map(p=>p.pct));
+  const minPct = Math.min(...periodSeries.map(p=>p.pct));
+  let pos=0, neg=0, bestPct=-Infinity, worstPct=Infinity, bestDate=null, worstDate=null;
+  periodSeries.forEach((p,i)=>{
+    if(i===0) return;
+    if(p.dailyPct>0) pos++; else if(p.dailyPct<0) neg++;
+    if(p.dailyPct>bestPct){ bestPct=p.dailyPct; bestDate=p.date; }
+    if(p.dailyPct<worstPct){ worstPct=p.dailyPct; worstDate=p.date; }
+  });
   const fmtD = d=>d?d.toLocaleDateString("es-MX",{day:"numeric",month:"short"}):"—";
-
   document.getElementById("statMax").textContent = (maxPct>=0?"+":"")+maxPct.toFixed(2)+"%";
   document.getElementById("statMin").textContent = (minPct>=0?"+":"")+minPct.toFixed(2)+"%";
   document.getElementById("statPosDays").textContent = pos+" días";
   document.getElementById("statNegDays").textContent = neg+" días";
-  document.getElementById("statBestDay").textContent = bestDate ? (fmtD(bestDate)+" · +"+bestPct.toFixed(3)+"%") : "—";
-  document.getElementById("statWorstDay").textContent = worstDate ? (fmtD(worstDate)+" · "+worstPct.toFixed(3)+"%") : "—";
+  document.getElementById("statBestDay").textContent = bestDate?(fmtD(bestDate)+" · +"+(bestPct.toFixed(3))+"%"):"—";
+  document.getElementById("statWorstDay").textContent = worstDate?(fmtD(worstDate)+" · "+(worstPct.toFixed(3))+"%"):"—";
 
-  // Gráfica — mostrar % de rendimiento acumulado desde el inicio del período
+  // Gráfica
   const color = isUp ? "#2D5016" : "#8B2000";
   const bgColor = isUp ? "rgba(45,80,22,0.06)" : "rgba(139,32,0,0.06)";
-  const labels = data.map(h=>{
-    if(range==="1"||range==="5") return h.date.toLocaleDateString("es-MX",{day:"numeric",month:"short"});
-    return h.date.toLocaleDateString("es-MX",{day:"numeric",month:"short",year:range==="all"?"2-digit":undefined});
+  const labels = periodSeries.map(p=>{
+    if(range==="1"||range==="5") return p.date.toLocaleDateString("es-MX",{day:"numeric",month:"short"});
+    return p.date.toLocaleDateString("es-MX",{day:"numeric",month:"short",year:range==="all"?"2-digit":undefined});
   });
-  // Valores en % acumulado desde el primer día del período
-  const values = data.map(h => ((h.nav - first) / first) * 100);
+  const values = periodSeries.map(p=>p.pct);
+  const dailyVals = periodSeries.map(p=>p.dailyPct);
 
   if(mainNavInst) mainNavInst.destroy();
   mainNavInst = new Chart(document.getElementById("mainNavChart"),{
@@ -707,14 +725,10 @@ function renderMainChart(history, range){
           borderColor:"#2D5016", borderWidth:1, padding:12, cornerRadius:2,
           callbacks:{
             title: items => items[0].label,
-            label: c => "Rendimiento acumulado: " + (c.raw>=0?"+":"") + c.raw.toFixed(3) + "%",
-            afterLabel: c => {
-              const idx = c.dataIndex;
-              if(idx===0) return "";
-              const prevNav = data[idx-1].nav;
-              const curNav  = data[idx].nav;
-              const chg = ((curNav - prevNav) / prevNav) * 100;
-              return "Variación del día: " + (chg>=0?"+":"") + chg.toFixed(3) + "%";
+            label: c => "Rendimiento del período: "+(c.raw>=0?"+":"")+c.raw.toFixed(3)+"%",
+            afterLabel: (_,i) => {
+              const d = dailyVals[_?.dataIndex??0];
+              return "Variación del día: "+(d>=0?"+":"")+d?.toFixed(3)+"%";
             }
           }
         }
