@@ -113,20 +113,14 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 
   <!-- Gráfica principal: rendimiento % por sector -->
   <div class="chart-card">
-    <div class="chart-card-title">Rendimiento por sector (%)</div>
+    <div class="chart-card-title">Resultado neto por sector — 2026</div>
     <div class="chart-wrap"><canvas id="barChart"></canvas></div>
   </div>
 
-  <!-- Dos gráficas: ganado vs perdido + donut de asignación actual -->
-  <div class="two-col">
-    <div class="chart-card">
-      <div class="chart-card-title">Ganado vs. perdido por sector (MXN)</div>
-      <div class="chart-wrap sm"><canvas id="stackedChart"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-card-title">Asignación actual del portafolio</div>
-      <div class="chart-wrap donut"><canvas id="donutChart"></canvas></div>
-    </div>
+  <!-- Gráfica de dona: asignación actual -->
+  <div class="chart-card">
+    <div class="chart-card-title">Asignación actual del portafolio</div>
+    <div class="chart-wrap donut" style="height:300px;max-width:320px;margin:0 auto;"><canvas id="donutChart"></canvas></div>
   </div>
 
   <!-- Tarjetas detalle por sector -->
@@ -147,8 +141,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 /* ================================================================
    URL de la Hoja 4 publicada como CSV
    ================================================================ */
-const SHEET4_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=XXXXXXXX&single=true&output=csv";
-// ↑ Reemplaza XXXXXXXX con el gid de tu Hoja 4
+const SHEET4_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=649384606&single=true&output=csv";
 
 /* Configuración de sectores: qué columna CSV corresponde a cada dato */
 /* En el CSV las columnas son 0-based: A=0, B=1, C=2... */
@@ -215,24 +208,21 @@ function parseSheet4(rows){
 }
 
 /* ── RENDER ────────────────────────────────────────────── */
-let barInst=null, stackInst=null, donutInst=null;
+let barInst=null, donutInst=null;
 
 function renderSummary(sectors){
-  const totalGan = sectors.reduce((s,x)=>s+x.gan,0);
-  const totalPer = sectors.reduce((s,x)=>s+x.per,0);
-  const totalNet = totalGan+totalPer;
-  const totalEnd = sectors.reduce((s,x)=>s+x.end,0);
-  const best = sectors.reduce((b,x)=>x.pct>b.pct?x:b,sectors[0]);
-  const worst= sectors.reduce((w,x)=>x.pct<w.pct?x:w,sectors[0]);
-  const posSectors = sectors.filter(x=>x.pct>0).length;
+  const avgPct = sectors.reduce((s,x)=>s+x.pct,0)/sectors.length;
+  const best  = sectors.reduce((b,x)=>x.pct>b.pct?x:b, sectors[0]);
+  const worst = sectors.reduce((w,x)=>x.pct<w.pct?x:w, sectors[0]);
+  const pos   = sectors.filter(x=>x.pct>0).length;
+  const neg   = sectors.filter(x=>x.pct<0).length;
 
   document.getElementById("summaryGrid").innerHTML=`
-    <div class="summary-cell"><div class="summary-k">PnL neto total 2026</div><div class="summary-v ${totalNet>=0?'up':'down'}">${fmtPct(sectors.reduce((s,x)=>s+(x.net/x.start*100/sectors.length),0))}</div></div>
-    <div class="summary-cell"><div class="summary-k">Total ganado</div><div class="summary-v up">${fmtMXN(totalGan)}</div></div>
-    <div class="summary-cell"><div class="summary-k">Total perdido</div><div class="summary-v down">-${fmtMXN(Math.abs(totalPer))}</div></div>
-    <div class="summary-cell"><div class="summary-k">Mejor sector</div><div class="summary-v up">${best.name}</div></div>
-    <div class="summary-cell"><div class="summary-k">Peor sector</div><div class="summary-v down">${worst.name}</div></div>
-    <div class="summary-cell"><div class="summary-k">Sectores positivos</div><div class="summary-v">${posSectors} de ${sectors.length}</div></div>`;
+    <div class="summary-cell"><div class="summary-k">Promedio de rendimiento</div><div class="summary-v ${avgPct>=0?'up':'down'}">${fmtPct(avgPct)}</div></div>
+    <div class="summary-cell"><div class="summary-k">Mejor sector</div><div class="summary-v up">${best.name}<br><span style="font-size:14px">${fmtPct(best.pct)}</span></div></div>
+    <div class="summary-cell"><div class="summary-k">Peor sector</div><div class="summary-v down">${worst.name}<br><span style="font-size:14px">${fmtPct(worst.pct)}</span></div></div>
+    <div class="summary-cell"><div class="summary-k">Sectores en positivo</div><div class="summary-v up">${pos} de ${sectors.length}</div></div>
+    <div class="summary-cell"><div class="summary-k">Sectores en negativo</div><div class="summary-v ${neg>0?'down':'up'}">${neg} de ${sectors.length}</div></div>`;
 }
 
 function renderBarChart(sectors){
@@ -253,25 +243,6 @@ function renderBarChart(sectors){
           ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:10},callback:v=>v.toFixed(1)+"%"},
           afterDataLimits:a=>{const m=Math.max(Math.abs(a.min),Math.abs(a.max))*1.15;a.min=-m;a.max=m;}
         }
-      }
-    }
-  });
-}
-
-function renderStackedChart(sectors){
-  if(stackInst) stackInst.destroy();
-  stackInst=new Chart(document.getElementById("stackedChart"),{
-    type:"bar",
-    data:{labels:sectors.map(s=>s.name),datasets:[
-      {label:"Ganado",data:sectors.map(s=>s.gan),backgroundColor:"rgba(45,107,26,0.7)",borderColor:"#2D6B1A",borderWidth:1,borderRadius:2},
-      {label:"Perdido",data:sectors.map(s=>s.per),backgroundColor:"rgba(139,32,0,0.7)",borderColor:"#8B2000",borderWidth:1,borderRadius:2},
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:true,labels:{font:{family:"JetBrains Mono",size:10},color:"#4A4A46"}},
-        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmtMXN(c.raw)}`}}},
-      scales:{
-        x:{stacked:false,grid:{display:false},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},maxRotation:30}},
-        y:{grid:{color:"#ECEAE4"},border:{dash:[3,3]},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},callback:v=>"$"+Math.abs(v/1000).toFixed(0)+"k"}}
       }
     }
   });
@@ -310,13 +281,8 @@ function renderCards(sectors){
       <div class="sector-bar-track">
         <div class="sector-bar-fill" style="width:${barW}%;background:${isUp?'#2D6B1A':'#8B2000'}"></div>
       </div>
-      <div class="sector-detail">
-        <div class="sector-detail-row"><div class="sector-detail-k">Inicio del año</div><div class="sector-detail-v">${fmtMXN(s.start)}</div></div>
-        <div class="sector-detail-row"><div class="sector-detail-k">Valor actual</div><div class="sector-detail-v">${fmtMXN(s.end)}</div></div>
-        <div class="sector-detail-row"><div class="sector-detail-k">Ganado</div><div class="sector-detail-v up">+${fmtMXN(s.gan)}</div></div>
-        <div class="sector-detail-row"><div class="sector-detail-k">Perdido</div><div class="sector-detail-v down">-${fmtMXN(Math.abs(s.per))}</div></div>
-        ${s.dep!==0?`<div class="sector-detail-row"><div class="sector-detail-k">Depósitos</div><div class="sector-detail-v">+${fmtMXN(s.dep)}</div></div>`:''}
-        ${s.ret!==0?`<div class="sector-detail-row"><div class="sector-detail-k">Retiros</div><div class="sector-detail-v down">-${fmtMXN(Math.abs(s.ret))}</div></div>`:''}
+      <div style="font-family:var(--mono);font-size:11px;color:${isUp?'var(--up)':'var(--down)'};margin-top:4px;">
+        ${isUp?'▲ Ganancia neta':'▼ Pérdida neta'} en lo que va del año
       </div>`;
     grid.appendChild(card);
   });
@@ -325,7 +291,6 @@ function renderCards(sectors){
 function renderAll(sectors){
   renderSummary(sectors);
   renderBarChart(sectors);
-  renderStackedChart(sectors);
   renderDonut(sectors);
   renderCards(sectors);
   document.getElementById("periodLabel").textContent=
