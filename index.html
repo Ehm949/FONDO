@@ -279,7 +279,7 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); -w
     </div>
 
     <div style="margin-top:16px; font-family:var(--mono); font-size:11px; color:var(--ink-dim); line-height:1.7;">
-      Ganancia y pérdida calculada como la variación diaria del valor del portafolio descontando depósitos y retiros de capital. Cada año arranca desde cero el primer día de registro disponible.
+      Rendimiento calculado como la variación diaria del valor del portafolio — refleja exclusivamente el desempeño de los activos en los mercados financieros.
     </div>
 
   </div>
@@ -456,7 +456,7 @@ function computePnLByYear(history){
     const series=[];
     rows.forEach((h,i)=>{
       // Si es primer año y primer día: PnL=0 (es el punto de partida)
-      const dailyPnL = (prevRows.length===0&&i===0) ? 0 : h.totalValue-prevVal-(h.flow||0);
+      const dailyPnL = (prevRows.length===0&&i===0) ? 0 : h.totalValue-prevVal;
       cum+=dailyPnL;
       series.push({date:h.date,dailyPnL,cumulative:cum});
       prevVal=h.totalValue;
@@ -470,7 +470,7 @@ function computeTotalPnL(history){
   if(!valid.length) return [];
   let prevVal=valid[0].totalValue, cum=0;
   return valid.map((h,i)=>{
-    const daily=(i===0)?0:h.totalValue-prevVal-(h.flow||0);
+    const daily=(i===0)?0:h.totalValue-prevVal;
     cum+=daily; prevVal=h.totalValue;
     return {date:h.date,dailyPnL:daily,cumulative:cum};
   });
