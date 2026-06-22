@@ -435,20 +435,18 @@ async function fetchHistory(){
   const res=await fetch(CONFIG.HISTORY_CSV_URL);
   if(!res.ok) throw new Error("Hoja 3: HTTP "+res.status);
   const rows=parseCSV(await res.text());
-  const out=[];
-  const monthlyOfficial={}; // columnas I y J — tus cifras mensuales oficiales
+  const raw=[];
+  const monthlyOfficial={};
   rows.forEach(r=>{
-    // Columna A: fecha diaria → historial NAV
     if(r[0]&&r[1]){
       const d=parseDateMX(r[0]);
       const nav=toNum(r[1]);
       if(d&&!isNaN(nav)){
         const totalValue=toNum(r[3]);
         const flow=isNaN(toNum(r[4]))?0:toNum(r[4]);
-        out.push({date:d,nav,totalValue:isNaN(totalValue)?null:totalValue,flow});
+        raw.push({date:d,nav,totalValue:isNaN(totalValue)?null:totalValue,flow});
       }
     }
-    // Columnas I y J: fecha del mes y ganancia/pérdida oficial
     if(r[8]&&r[9]){
       const dm=parseDateMX(r[8]);
       const pnl=toNum(r[9]);
@@ -458,8 +456,28 @@ async function fetchHistory(){
       }
     }
   });
-  const history=out.sort((a,b)=>a.date-b.date);
-  history.monthlyOfficial=monthlyOfficial; // adjuntar al array para uso posterior
+
+  // DEDUPLICAR fechas: si hay dos filas para el mismo día (pasa cuando
+  // registras un flujo ese día), sumar los flujos y quedarse con el
+  // último valor registrado — ese es el valor real de cierre del día.
+  const byDate={};
+  raw.sort((a,b)=>a.date-b.date).forEach(h=>{
+    const key=h.date.toISOString().slice(0,10);
+    if(!byDate[key]){
+      byDate[key]=h;
+    } else {
+      // Acumular el flujo total del día y usar el último valor/nav
+      byDate[key]={
+        date:     h.date,
+        nav:      h.nav,
+        totalValue: h.totalValue??byDate[key].totalValue,
+        flow:     (byDate[key].flow||0)+(h.flow||0),
+      };
+    }
+  });
+
+  const history=Object.values(byDate).sort((a,b)=>a.date-b.date);
+  history.monthlyOfficial=monthlyOfficial;
   return history;
 }
 
