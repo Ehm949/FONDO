@@ -149,16 +149,20 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 <script>
 /* ── DATOS DEL ACCIONISTA ──── */
 const ACCIONISTA = {
-  nombre:         "Mauricio Saavedra",
+  nombre:         "Mauricio Saabedra",
   acciones:       350,
   precioPromedio: 0.29495,
 };
 
-/* ── ID del Google Sheet y GID de Hoja 3 ── */
-const SHEET_ID = "2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV";
-const GID_H3   = "1974841137";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkZUfZGCpGyKWDfhP0M_76Z4Qt1nQ_2UTj9KqhSOv2b6VWDl-PoYbzrKECp8gqfEa4/exec";
 
-/* ── FORMATO ────────────────── */
+async function fetchNAV(){
+  const res = await fetch(APPS_SCRIPT_URL);
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  if(!data.nav || isNaN(data.nav)) throw new Error("Respuesta inválida del servidor");
+  return parseFloat(data.nav);
+}
 const fmtMXN = n => "$" + new Intl.NumberFormat("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
 const fmtInt = n => new Intl.NumberFormat("es-MX").format(Math.round(n));
 
@@ -172,58 +176,7 @@ function showMsg(text, isError){
   b.className = "msg-box show" + (isError ? " err" : "");
 }
 
-/* ── LEER NAV VÍA JSONP (evita CORS) ──────
-   Google Visualization API permite leer Sheets
-   desde cualquier dominio usando JSONP.
-   Leemos la columna B (NAV x acción) de Hoja 3
-   y tomamos el último valor no vacío.
-────────────────────────────────────────────── */
-function fetchNAVviaJSONP(){
-  return new Promise((resolve, reject) => {
-    const callbackName = "gviz_cb_" + Date.now();
-    const query = encodeURIComponent("select B where B is not null order by A");
-    const url = `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/gviz/tq?tqx=out:json&tq=${query}&gid=${GID_H3}&jsonp=${callbackName}`;
 
-    const timeout = setTimeout(()=>{
-      cleanup();
-      reject(new Error("Tiempo de espera agotado — revisa tu conexión"));
-    }, 12000);
-
-    function cleanup(){
-      clearTimeout(timeout);
-      delete window[callbackName];
-      const s = document.getElementById("gviz_script");
-      if(s) s.remove();
-    }
-
-    window[callbackName] = function(data){
-      cleanup();
-      try {
-        const rows = data.table.rows;
-        if(!rows || rows.length === 0) return reject(new Error("Sin datos en la hoja"));
-        // La última fila con valor en columna B es el NAV más reciente
-        let lastNAV = null;
-        rows.forEach(r => {
-          if(r.c && r.c[0] && r.c[0].v != null){
-            lastNAV = parseFloat(r.c[0].v);
-          }
-        });
-        if(lastNAV === null || isNaN(lastNAV)) return reject(new Error("No se encontró el NAV"));
-        resolve(lastNAV);
-      } catch(e) {
-        reject(new Error("Error al leer datos: " + e.message));
-      }
-    };
-
-    const script = document.createElement("script");
-    script.id = "gviz_script";
-    script.src = url;
-    script.onerror = () => { cleanup(); reject(new Error("No se pudo conectar a Google Sheets")); };
-    document.head.appendChild(script);
-  });
-}
-
-/* ── RENDER ─────────────────── */
 async function render(){
   document.getElementById("greetingDate").textContent =
     new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
@@ -231,7 +184,7 @@ async function render(){
   setStatus("loading","Cargando");
 
   try {
-    const nav = await fetchNAVviaJSONP();
+    const nav = await fetchNAV();
 
     const valorActual      = ACCIONISTA.acciones * nav;
     const inversionInicial = ACCIONISTA.acciones * ACCIONISTA.precioPromedio;
