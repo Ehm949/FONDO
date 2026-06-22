@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rendimiento por sector — Fondo Multiactivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --paper:   #F7F5F0;
+  --white:   #FFFFFF;
+  --ink:     #1A1A18;
+  --ink-mid: #4A4A46;
+  --ink-dim: #8A8A84;
+  --rule:    #D8D5CE;
+  --rule-lt: #ECEAE4;
+  --accent:  #2D5016;
+  --up:      #2D6B1A;
+  --up-bg:   #EBF4E6;
+  --down:    #8B2000;
+  --down-bg: #FAEAE6;
+  --serif:   'Playfair Display', Georgia, serif;
+  --sans:    'DM Sans', system-ui, sans-serif;
+  --mono:    'JetBrains Mono', monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;}
+::selection{background:var(--accent);color:#fff;}
+
+.page{max-width:1060px;margin:0 auto;padding:0 28px 100px;}
+
+.masthead{border-bottom:2px solid var(--ink);padding:32px 0 20px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.mast-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);}
+.mast-name{font-family:var(--serif);font-size:22px;font-weight:500;}
+.mast-link{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-dim);border:1px solid var(--rule);padding:7px 12px;background:var(--white);text-decoration:none;}
+.mast-link:hover{background:var(--ink);color:var(--paper);}
+.status-badge{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-dim);border:1px solid var(--rule);padding:7px 12px;background:var(--white);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ink-dim);flex-shrink:0;}
+.dot.ok{background:var(--up);animation:blink 2.5s ease-in-out infinite;}
+.dot.loading{background:#B8860B;animation:blink 1s ease-in-out infinite;}
+.dot.err{background:var(--down);animation:none;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;padding:40px 0 20px;border-bottom:1px solid var(--rule);margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+.sec-title{font-family:var(--serif);font-size:20px;font-weight:400;}
+.sec-sub{font-family:var(--mono);font-size:11px;color:var(--ink-dim);}
+
+/* Resumen total */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-bottom:32px;}
+.summary-cell{background:var(--white);padding:18px 20px;}
+.summary-k{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:6px;}
+.summary-v{font-family:var(--mono);font-size:20px;font-weight:500;}
+.summary-v.up{color:var(--up);}
+.summary-v.down{color:var(--down);}
+
+/* Chart grande de barras por sector */
+.chart-card{background:var(--white);border:1px solid var(--rule);padding:24px 24px 16px;margin-bottom:1px;}
+.chart-card-title{font-family:var(--serif);font-size:16px;font-weight:400;margin-bottom:18px;}
+.chart-wrap{position:relative;height:300px;}
+.chart-wrap.sm{height:220px;}
+.chart-wrap.donut{height:280px;max-width:280px;margin:0 auto;}
+
+/* Dos gráficas lado a lado */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-bottom:1px;}
+@media(max-width:580px){.two-col{grid-template-columns:1fr;}}
+
+/* Tarjetas por sector */
+.sector-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:32px;}
+.sector-card{background:var(--white);padding:20px 22px;}
+.sector-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.sector-dot{width:10px;height:10px;flex-shrink:0;}
+.sector-name{font-size:14px;font-weight:500;color:var(--ink);flex:1;margin-left:10px;}
+.sector-pct{font-family:var(--mono);font-size:18px;font-weight:500;}
+.sector-pct.up{color:var(--up);}
+.sector-pct.down{color:var(--down);}
+.sector-bar-track{height:3px;background:var(--rule-lt);margin:8px 0 12px;}
+.sector-bar-fill{height:100%;}
+.sector-detail{display:grid;grid-template-columns:1fr 1fr;gap:6px 0;}
+.sector-detail-row{display:flex;flex-direction:column;}
+.sector-detail-k{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:2px;}
+.sector-detail-v{font-family:var(--mono);font-size:12px;color:var(--ink);}
+.sector-detail-v.up{color:var(--up);}
+.sector-detail-v.down{color:var(--down);}
+
+.footnote{margin-top:52px;padding-top:20px;border-top:1px solid var(--rule);font-size:12px;color:var(--ink-dim);line-height:1.8;}
+.error-box{display:none;margin:24px 0;padding:14px 16px;border-left:3px solid var(--down);background:var(--down-bg);font-size:13px;color:var(--down);line-height:1.6;}
+.error-box.show{display:block;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div>
+      <div class="mast-eyebrow">Fondo Multiactivo · Análisis de portafolio</div>
+      <div class="mast-name">Rendimiento por sector — 2026</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <a href="index.html" class="mast-link">← Ver fondo</a>
+      <div class="status-badge"><span class="dot loading" id="dot"></span><span id="statusLabel">Cargando</span></div>
+    </div>
+  </header>
+
+  <!-- Resumen total -->
+  <div class="sec-head">
+    <div class="sec-title">Resumen general del año</div>
+    <div class="sec-sub" id="periodLabel">Cargando datos…</div>
+  </div>
+  <div class="summary-grid" id="summaryGrid"></div>
+
+  <!-- Gráfica principal: rendimiento % por sector -->
+  <div class="chart-card">
+    <div class="chart-card-title">Rendimiento por sector (%)</div>
+    <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+  </div>
+
+  <!-- Dos gráficas: ganado vs perdido + donut de asignación actual -->
+  <div class="two-col">
+    <div class="chart-card">
+      <div class="chart-card-title">Ganado vs. perdido por sector (MXN)</div>
+      <div class="chart-wrap sm"><canvas id="stackedChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title">Asignación actual del portafolio</div>
+      <div class="chart-wrap donut"><canvas id="donutChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Tarjetas detalle por sector -->
+  <div class="sec-head" style="margin-top:32px;">
+    <div class="sec-title">Detalle por sector</div>
+  </div>
+  <div class="sector-grid" id="sectorGrid"></div>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div class="footnote">
+    <b>Fuente:</b> datos calculados día a día por sector desde el 2 de enero de 2026. Ganancias y pérdidas representan movimientos de mercado de los activos en cada sector; los depósitos y retiros dentro de cada sector se muestran por separado y no afectan el cálculo de rendimiento. Esta página es de uso interno del administrador del fondo.
+  </div>
+
+</div>
+
+<script>
+/* ================================================================
+   URL de la Hoja 4 publicada como CSV
+   ================================================================ */
+const SHEET4_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=XXXXXXXX&single=true&output=csv";
+// ↑ Reemplaza XXXXXXXX con el gid de tu Hoja 4
+
+/* Configuración de sectores: qué columna CSV corresponde a cada dato */
+/* En el CSV las columnas son 0-based: A=0, B=1, C=2... */
+const SECTOR_CONFIG = [
+  {name:"FIBRAs México",        color:"#6B1A1A", start:1,  dep:2,  gan:3,  per:4,  ret:null, end:5 },
+  {name:"EE.UU.",               color:"#1A3A5C", start:8,  dep:9,  gan:10, per:11, ret:null, end:12},
+  {name:"Cripto",               color:"#8B6914", start:15, dep:16, gan:17, per:18, ret:null, end:19},
+  {name:"Renta Fija",           color:"#2D5016", start:22, dep:23, gan:24, per:25, ret:26,   end:27},
+  {name:"Mercados Emergentes",  color:"#4A7A28", start:30, dep:31, gan:32, per:33, ret:34,   end:35},
+  {name:"Países Desarrollados", color:"#6B6B5A", start:38, dep:39, gan:40, per:41, ret:null, end:42},
+];
+
+/* Datos precalculados (usando tu Hoja 4 actual) */
+/* Cuando conectes el CSV se recalculan automáticamente */
+const PRECOMPUTED = [
+  {name:"FIBRAs México",        color:"#6B1A1A", start:50306,  end:55782, dep:1682.86,  gan:19932,   per:-16138,   ret:0,       net:3794,   pct:7.54},
+  {name:"EE.UU.",               color:"#1A3A5C", start:64122,  end:71146, dep:2512.26,  gan:21027,   per:-16516,   ret:0,       net:4511,   pct:7.04},
+  {name:"Cripto",               color:"#8B6914", start:26115,  end:17417, dep:0,         gan:19581,   per:-28279,   ret:0,       net:-8698,  pct:-33.31},
+  {name:"Renta Fija",           color:"#2D5016", start:114211, end:90674, dep:10000,    gan:3097,    per:0,         ret:-36634,  net:3097,   pct:2.71},
+  {name:"Mercados Emergentes",  color:"#4A7A28", start:4918,   end:14726, dep:8147,     gan:3713,    per:-3063,    ret:0,       net:650,    pct:13.21},
+  {name:"Países Desarrollados", color:"#6B6B5A", start:35080,  end:43806, dep:4940,     gan:15966,   per:-12180,   ret:0,       net:3786,   pct:10.79},
+];
+
+/* ── UTILS ─────────────────────────────────────────────── */
+function toNum(s){
+  if(s==null) return 0;
+  const c=String(s).replace(/[^0-9.\-]/g,"");
+  return c===""?0:parseFloat(c)||0;
+}
+function parseCSV(text){
+  return text.trim().split("\n").map(line=>{
+    const cells=[]; let cur="",inQ=false;
+    for(const ch of line){
+      if(ch==='"'){inQ=!inQ;continue;}
+      if(ch===','&&!inQ){cells.push(cur.trim());cur="";continue;}
+      cur+=ch;
+    }
+    cells.push(cur.trim()); return cells;
+  });
+}
+const fmtMXN = n=>"$"+new Intl.NumberFormat("es-MX",{minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.abs(n));
+const fmtPct = n=>(n>=0?"+":"")+n.toFixed(2)+"%";
+
+/* ── PARSEAR HOJA 4 ────────────────────────────────────── */
+function parseSheet4(rows){
+  return SECTOR_CONFIG.map(cfg=>{
+    let gan=0, per=0, dep=0, ret=0, firstStart=null, lastEnd=null;
+    rows.slice(2).forEach(r=>{
+      const sv = toNum(r[cfg.start]);
+      const ev = toNum(r[cfg.end]);
+      const gv = toNum(r[cfg.gan]);
+      const pv = toNum(r[cfg.per]);
+      const dv = toNum(r[cfg.dep]);
+      const rv = cfg.ret!=null ? toNum(r[cfg.ret]) : 0;
+      if(sv===0 && ev===0) return;
+      if(firstStart===null && sv!==0) firstStart=sv;
+      if(ev!==0) lastEnd=ev;
+      gan+=gv; per+=pv; dep+=dv; ret+=rv;
+    });
+    const net=gan+per;
+    const pct=firstStart ? (net/firstStart)*100 : 0;
+    return {...cfg, start:firstStart||0, end:lastEnd||0, dep, gan, per, ret, net, pct};
+  });
+}
+
+/* ── RENDER ────────────────────────────────────────────── */
+let barInst=null, stackInst=null, donutInst=null;
+
+function renderSummary(sectors){
+  const totalGan = sectors.reduce((s,x)=>s+x.gan,0);
+  const totalPer = sectors.reduce((s,x)=>s+x.per,0);
+  const totalNet = totalGan+totalPer;
+  const totalEnd = sectors.reduce((s,x)=>s+x.end,0);
+  const best = sectors.reduce((b,x)=>x.pct>b.pct?x:b,sectors[0]);
+  const worst= sectors.reduce((w,x)=>x.pct<w.pct?x:w,sectors[0]);
+  const posSectors = sectors.filter(x=>x.pct>0).length;
+
+  document.getElementById("summaryGrid").innerHTML=`
+    <div class="summary-cell"><div class="summary-k">PnL neto total 2026</div><div class="summary-v ${totalNet>=0?'up':'down'}">${fmtPct(sectors.reduce((s,x)=>s+(x.net/x.start*100/sectors.length),0))}</div></div>
+    <div class="summary-cell"><div class="summary-k">Total ganado</div><div class="summary-v up">${fmtMXN(totalGan)}</div></div>
+    <div class="summary-cell"><div class="summary-k">Total perdido</div><div class="summary-v down">-${fmtMXN(Math.abs(totalPer))}</div></div>
+    <div class="summary-cell"><div class="summary-k">Mejor sector</div><div class="summary-v up">${best.name}</div></div>
+    <div class="summary-cell"><div class="summary-k">Peor sector</div><div class="summary-v down">${worst.name}</div></div>
+    <div class="summary-cell"><div class="summary-k">Sectores positivos</div><div class="summary-v">${posSectors} de ${sectors.length}</div></div>`;
+}
+
+function renderBarChart(sectors){
+  if(barInst) barInst.destroy();
+  const colors=sectors.map(s=>s.pct>=0?"rgba(45,107,26,0.8)":"rgba(139,32,0,0.8)");
+  const borders=sectors.map(s=>s.pct>=0?"#2D6B1A":"#8B2000");
+  barInst=new Chart(document.getElementById("barChart"),{
+    type:"bar",
+    data:{labels:sectors.map(s=>s.name),datasets:[{
+      data:sectors.map(s=>s.pct),
+      backgroundColor:colors,borderColor:borders,borderWidth:1.5,borderRadius:2
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(c.raw>=0?"+":"")+c.raw.toFixed(2)+"%"}}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:10}}},
+        y:{grid:{color:"#ECEAE4"},border:{dash:[3,3]},
+          ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:10},callback:v=>v.toFixed(1)+"%"},
+          afterDataLimits:a=>{const m=Math.max(Math.abs(a.min),Math.abs(a.max))*1.15;a.min=-m;a.max=m;}
+        }
+      }
+    }
+  });
+}
+
+function renderStackedChart(sectors){
+  if(stackInst) stackInst.destroy();
+  stackInst=new Chart(document.getElementById("stackedChart"),{
+    type:"bar",
+    data:{labels:sectors.map(s=>s.name),datasets:[
+      {label:"Ganado",data:sectors.map(s=>s.gan),backgroundColor:"rgba(45,107,26,0.7)",borderColor:"#2D6B1A",borderWidth:1,borderRadius:2},
+      {label:"Perdido",data:sectors.map(s=>s.per),backgroundColor:"rgba(139,32,0,0.7)",borderColor:"#8B2000",borderWidth:1,borderRadius:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,labels:{font:{family:"JetBrains Mono",size:10},color:"#4A4A46"}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmtMXN(c.raw)}`}}},
+      scales:{
+        x:{stacked:false,grid:{display:false},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},maxRotation:30}},
+        y:{grid:{color:"#ECEAE4"},border:{dash:[3,3]},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},callback:v=>"$"+Math.abs(v/1000).toFixed(0)+"k"}}
+      }
+    }
+  });
+}
+
+function renderDonut(sectors){
+  if(donutInst) donutInst.destroy();
+  donutInst=new Chart(document.getElementById("donutChart"),{
+    type:"doughnut",
+    data:{labels:sectors.map(s=>s.name),datasets:[{
+      data:sectors.map(s=>Math.max(s.end,0)),
+      backgroundColor:sectors.map(s=>s.color),
+      borderWidth:3,borderColor:"#FFFFFF"
+    }]},
+    options:{responsive:true,maintainAspectRatio:true,cutout:"65%",
+      plugins:{legend:{display:true,position:"bottom",labels:{font:{family:"JetBrains Mono",size:9},color:"#4A4A46",padding:12}},
+        tooltip:{callbacks:{label:c=>{const tot=sectors.reduce((s,x)=>s+Math.max(x.end,0),0);return c.label+": "+((c.raw/tot)*100).toFixed(1)+"%";}}}
+      }
+    }
+  });
+}
+
+function renderCards(sectors){
+  const grid=document.getElementById("sectorGrid");
+  grid.innerHTML="";
+  sectors.forEach(s=>{
+    const isUp=s.pct>=0;
+    const barW=Math.min(Math.abs(s.pct)/35*100,100);
+    const card=document.createElement("div"); card.className="sector-card";
+    card.innerHTML=`
+      <div class="sector-top">
+        <div class="sector-dot" style="background:${s.color}"></div>
+        <div class="sector-name">${s.name}</div>
+        <div class="sector-pct ${isUp?'up':'down'}">${fmtPct(s.pct)}</div>
+      </div>
+      <div class="sector-bar-track">
+        <div class="sector-bar-fill" style="width:${barW}%;background:${isUp?'#2D6B1A':'#8B2000'}"></div>
+      </div>
+      <div class="sector-detail">
+        <div class="sector-detail-row"><div class="sector-detail-k">Inicio del año</div><div class="sector-detail-v">${fmtMXN(s.start)}</div></div>
+        <div class="sector-detail-row"><div class="sector-detail-k">Valor actual</div><div class="sector-detail-v">${fmtMXN(s.end)}</div></div>
+        <div class="sector-detail-row"><div class="sector-detail-k">Ganado</div><div class="sector-detail-v up">+${fmtMXN(s.gan)}</div></div>
+        <div class="sector-detail-row"><div class="sector-detail-k">Perdido</div><div class="sector-detail-v down">-${fmtMXN(Math.abs(s.per))}</div></div>
+        ${s.dep!==0?`<div class="sector-detail-row"><div class="sector-detail-k">Depósitos</div><div class="sector-detail-v">+${fmtMXN(s.dep)}</div></div>`:''}
+        ${s.ret!==0?`<div class="sector-detail-row"><div class="sector-detail-k">Retiros</div><div class="sector-detail-v down">-${fmtMXN(Math.abs(s.ret))}</div></div>`:''}
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function renderAll(sectors){
+  renderSummary(sectors);
+  renderBarChart(sectors);
+  renderStackedChart(sectors);
+  renderDonut(sectors);
+  renderCards(sectors);
+  document.getElementById("periodLabel").textContent=
+    "2 ene 2026 — "+new Date().toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"});
+}
+
+/* ── LOAD ──────────────────────────────────────────────── */
+async function loadData(){
+  // Mostrar datos precalculados inmediatamente
+  renderAll(PRECOMPUTED);
+  document.getElementById("dot").className="dot ok";
+  document.getElementById("statusLabel").textContent="Datos del "+new Date().toLocaleDateString("es-MX",{day:"numeric",month:"short"});
+
+  // Si hay URL de Hoja 4 configurada, intentar actualizar desde el CSV
+  if(!SHEET4_URL.includes("XXXXXXXX")){
+    try{
+      const res=await fetch(SHEET4_URL);
+      if(!res.ok) throw new Error("HTTP "+res.status);
+      const rows=parseCSV(await res.text());
+      const sectors=parseSheet4(rows);
+      renderAll(sectors);
+      document.getElementById("dot").className="dot ok";
+      document.getElementById("statusLabel").textContent="En vivo · "+new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+    }catch(e){
+      const box=document.getElementById("errorBox");
+      box.textContent="No se pudo cargar el CSV de Hoja 4: "+e.message+". Mostrando datos precalculados.";
+      box.classList.add("show");
+    }
+  }
+}
+
+loadData();
+setInterval(loadData, 120000);
+</script>
+</body>
+</html>
