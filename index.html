@@ -296,14 +296,6 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); -w
         <div class="nav-live-stat-k">Último registro</div>
         <div class="nav-live-stat-v" id="navStatDate">—</div>
       </div>
-      <div class="nav-live-stat">
-        <div class="nav-live-stat-k">Rendimiento YTD</div>
-        <div class="nav-live-stat-v" id="navStatYTD">—</div>
-      </div>
-      <div class="nav-live-stat">
-        <div class="nav-live-stat-k">Desde el inicio</div>
-        <div class="nav-live-stat-v" id="navStatTotal">—</div>
-      </div>
     </div>
   </div>
 
@@ -855,25 +847,6 @@ function renderNavLive(positions, shares, history){
   document.getElementById("navStatDate").textContent = lastDate
     ? lastDate.toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"})
     : "—";
-
-  // YTD: comparar con el primer NAV del año en curso
-  const thisYear = new Date().getFullYear();
-  const ytdFirst = sortedH.find(h=>h.date.getFullYear()===thisYear);
-  if(ytdFirst){
-    const ytdPct = ((nav - ytdFirst.nav) / ytdFirst.nav) * 100;
-    const ytdEl = document.getElementById("navStatYTD");
-    ytdEl.className = "nav-live-stat-v " + (ytdPct>=0?"up":"down");
-    ytdEl.textContent = (ytdPct>=0?"+":"") + fmtPct(ytdPct,false);
-  }
-
-  // Desde el inicio del fondo
-  const firstEver = sortedH[0];
-  if(firstEver){
-    const totalPct = ((nav - firstEver.nav) / firstEver.nav) * 100;
-    const totalEl = document.getElementById("navStatTotal");
-    totalEl.className = "nav-live-stat-v " + (totalPct>=0?"up":"down");
-    totalEl.textContent = (totalPct>=0?"+":"") + fmtPct(totalPct,false);
-  }
 
   // Pulse indicator
   document.getElementById("navPulse").className = "nav-live-pulse";
