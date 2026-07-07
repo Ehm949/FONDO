@@ -51,8 +51,9 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 @media(max-width:480px){.cards{grid-template-columns:1fr;}}
 .card{background:var(--white);padding:22px 22px 20px;}
 .card-k{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:8px;}
-.card-v{font-family:var(--serif);font-size:30px;font-weight:500;color:var(--ink);line-height:1.1;}
+.card-v{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--ink);line-height:1.2;}
 .card-v.accent{color:var(--accent);}
+.card-v.serif{font-family:var(--serif);font-size:30px;}
 .card-sub{font-family:var(--mono);font-size:11px;color:var(--ink-dim);margin-top:6px;}
 
 .perf-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:28px;padding:18px 0;border-top:1px solid var(--rule-lt);border-bottom:1px solid var(--rule-lt);flex-wrap:wrap;}
@@ -111,12 +112,12 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
   <div class="cards">
     <div class="card">
       <div class="card-k">Tus acciones</div>
-      <div class="card-v accent" id="cardShares">—</div>
+      <div class="card-v accent serif" id="cardShares">—</div>
       <div class="card-sub">unidades</div>
     </div>
     <div class="card">
       <div class="card-k">Valor actual de tu inversión</div>
-      <div class="card-v" id="cardValue">—</div>
+      <div class="card-v serif" id="cardValue">—</div>
       <div class="card-sub">MXN</div>
     </div>
     <div class="card">
