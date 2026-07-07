@@ -10,30 +10,18 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 :root {
-  --paper:   #F7F5F0;
-  --white:   #FFFFFF;
-  --ink:     #1A1A18;
-  --ink-mid: #4A4A46;
-  --ink-dim: #8A8A84;
-  --rule:    #D8D5CE;
-  --rule-lt: #ECEAE4;
-  --accent:  #2D5016;
-  --up:      #2D6B1A;
-  --up-bg:   #EBF4E6;
-  --down:    #8B2000;
-  --down-bg: #FAEAE6;
-  --serif:   'Playfair Display', Georgia, serif;
-  --sans:    'DM Sans', system-ui, sans-serif;
-  --mono:    'JetBrains Mono', monospace;
+  --paper:#F7F5F0;--white:#FFFFFF;--ink:#1A1A18;--ink-mid:#4A4A46;--ink-dim:#8A8A84;
+  --rule:#D8D5CE;--rule-lt:#ECEAE4;--accent:#2D5016;
+  --up:#2D6B1A;--up-bg:#EBF4E6;--down:#8B2000;--down-bg:#FAEAE6;
+  --serif:'Playfair Display',Georgia,serif;--sans:'DM Sans',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;}
 .page{max-width:680px;margin:0 auto;padding:0 24px 80px;}
-
 .masthead{border-bottom:2px solid var(--ink);padding:32px 0 20px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;}
 .mast-name{font-family:var(--serif);font-size:20px;font-weight:500;}
 .mast-sub{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-top:3px;}
-.mast-right{display:flex;align-items:center;gap:10px;}
+.mast-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .mast-link{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-mid);border:1px solid var(--rule);padding:7px 12px;background:var(--white);text-decoration:none;transition:all .15s;}
 .mast-link:hover{background:var(--ink);color:var(--paper);}
 .status-badge{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-dim);border:1px solid var(--rule);padding:7px 12px;background:var(--white);}
@@ -42,49 +30,42 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .dot.ok{background:var(--up);animation:blink 2.5s ease-in-out infinite;}
 .dot.error{background:var(--down);animation:none;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-
 .greeting{padding:44px 0 32px;border-bottom:1px solid var(--rule);}
 .greeting-name{font-family:var(--serif);font-size:clamp(28px,6vw,44px);font-weight:400;margin-bottom:6px;}
 .greeting-date{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-dim);}
-
 .cards{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border:1px solid var(--rule);margin:32px 0 0;}
 @media(max-width:480px){.cards{grid-template-columns:1fr;}}
 .card{background:var(--white);padding:22px 22px 20px;}
 .card-k{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:8px;}
-.card-v{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--ink);line-height:1.2;}
-.card-v.accent{color:var(--accent);}
-.card-v.serif{font-family:var(--serif);font-size:30px;}
+.card-v-big{font-family:var(--serif);font-size:30px;font-weight:500;color:var(--ink);line-height:1.1;}
+.card-v-big.accent{color:var(--accent);}
+.card-v{font-family:var(--mono);font-size:19px;font-weight:500;color:var(--ink);line-height:1.2;word-break:break-all;}
 .card-sub{font-family:var(--mono);font-size:11px;color:var(--ink-dim);margin-top:6px;}
-
 .perf-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:28px;padding:18px 0;border-top:1px solid var(--rule-lt);border-bottom:1px solid var(--rule-lt);flex-wrap:wrap;}
 .perf-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);}
 .perf-value{font-family:var(--mono);font-size:20px;font-weight:500;}
 .perf-value.up{color:var(--up);}
 .perf-value.down{color:var(--down);}
 .perf-value.neutral{color:var(--ink-dim);}
-
-/* Gráfica de evolución */
 .chart-section{margin-top:36px;}
 .chart-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
 .chart-title{font-family:var(--serif);font-size:17px;font-weight:400;}
 .chart-since{font-family:var(--mono);font-size:10px;color:var(--ink-dim);}
 .chart-wrap{position:relative;height:200px;background:var(--white);border:1px solid var(--rule);padding:16px 8px 8px;}
-
 .detail{margin-top:32px;}
 .detail-title{font-family:var(--serif);font-size:17px;font-weight:400;margin-bottom:16px;}
 .detail-row{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--rule-lt);gap:12px;}
 .detail-row:last-child{border-bottom:none;}
 .detail-k{font-size:13px;color:var(--ink-mid);}
 .detail-v{font-family:var(--mono);font-size:13px;color:var(--ink);text-align:right;}
-
 .update-row{display:flex;align-items:center;gap:10px;margin-top:28px;}
 .update-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);}
 .update-val{font-family:var(--mono);font-size:12px;color:var(--ink-mid);}
-
 .msg-box{margin-top:20px;padding:14px 16px;font-size:13px;line-height:1.6;border-left:3px solid var(--rule);color:var(--ink-dim);display:none;}
 .msg-box.show{display:block;}
 .msg-box.err{border-color:var(--down);background:var(--down-bg);color:var(--down);}
 .footnote{margin-top:52px;padding-top:20px;border-top:1px solid var(--rule);font-size:11px;color:var(--ink-dim);line-height:1.8;}
+.loading-state{text-align:center;padding:40px 0;font-family:var(--mono);font-size:12px;color:var(--ink-dim);}
 </style>
 </head>
 <body>
@@ -105,85 +86,23 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
   </header>
 
   <div class="greeting">
-    <div class="greeting-name" id="greetingName">Hola</div>
+    <div class="greeting-name" id="greetingName">—</div>
     <div class="greeting-date" id="greetingDate">—</div>
   </div>
 
-  <div class="cards">
-    <div class="card">
-      <div class="card-k">Tus acciones</div>
-      <div class="card-v accent serif" id="cardShares">—</div>
-      <div class="card-sub">unidades</div>
-    </div>
-    <div class="card">
-      <div class="card-k">Valor actual de tu inversión</div>
-      <div class="card-v serif" id="cardValue">—</div>
-      <div class="card-sub">MXN</div>
-    </div>
-    <div class="card">
-      <div class="card-k">NAV por acción hoy</div>
-      <div class="card-v" id="cardNav">—</div>
-      <div class="card-sub">MXN / acción</div>
-    </div>
-    <div class="card">
-      <div class="card-k">Tu precio de compra</div>
-      <div class="card-v" id="cardCost">—</div>
-      <div class="card-sub">MXN / acción</div>
-    </div>
-  </div>
-
-  <div class="perf-row">
-    <div class="perf-label">Ganancia / pérdida sobre tu inversión</div>
-    <div class="perf-value neutral" id="perfValue">—</div>
-  </div>
-
-  <!-- GRÁFICA DE EVOLUCIÓN DESDE TU ENTRADA -->
-  <div class="chart-section">
-    <div class="chart-head">
-      <div class="chart-title">Evolución del fondo desde tu entrada</div>
-      <div class="chart-since" id="chartSince">—</div>
-    </div>
-    <div class="chart-wrap">
-      <canvas id="navChart"></canvas>
-    </div>
-  </div>
-
-  <div class="update-row">
-    <span class="update-label">Última actualización</span>
-    <span class="update-val" id="lastUpdate">—</span>
-  </div>
-
-  <div class="detail">
-    <div class="detail-title">Resumen de tu cuenta</div>
-    <div class="detail-row"><span class="detail-k">Nombre</span><span class="detail-v" id="detailName">—</span></div>
-    <div class="detail-row"><span class="detail-k">Acciones</span><span class="detail-v" id="detailShares">—</span></div>
-    <div class="detail-row"><span class="detail-k">Precio de compra</span><span class="detail-v" id="detailCost">—</span></div>
-    <div class="detail-row"><span class="detail-k">Inversión inicial</span><span class="detail-v" id="detailInvested">—</span></div>
-    <div class="detail-row"><span class="detail-k">Valor actual</span><span class="detail-v" id="detailValue">—</span></div>
-    <div class="detail-row"><span class="detail-k">Ganancia / pérdida</span><span class="detail-v" id="detailPnL">—</span></div>
-    <div class="detail-row"><span class="detail-k">Rendimiento</span><span class="detail-v" id="detailPct">—</span></div>
-  </div>
+  <div id="mainContent" class="loading-state">Cargando datos del fondo…</div>
 
   <div class="msg-box" id="msgBox"></div>
-
-  <div class="footnote" id="footnoteText">
-    Estado de cuenta exclusivo y confidencial. El valor se actualiza en tiempo real con base en el NAV del fondo. Para consultas contacta al administrador.
-  </div>
+  <div class="footnote" id="footnoteText"></div>
 
 </div>
 <script>
-/* ── CONFIGURACIÓN — editar por accionista ── */
-const ACCIONISTA = {
-  nombre:         "Mauricio Saabedra",
-  saludo:         "Mauricio",
-  acciones:       100,
-  precioPromedio: 0.29495,
-  fechaEntrada:   "2026-06-21",   // formato: "YYYY-MM-DD"
-};
+/* ── CLAVE DEL ACCIONISTA — único dato hardcodeado ── */
+const CLAVE = "mau";
 
-/* ── FUENTES DE DATOS ── */
-const APPS_SCRIPT_URL  = "https://script.google.com/macros/s/AKfycbxkZUfZGCpGyKWDfhP0M_76Z4Qt1nQ_2UTj9KqhSOv2b6VWDl-PoYbzrKECp8gqfEa4/exec";
-const HISTORY_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=1974841137&single=true&output=csv";
+/* ── FUENTES ── */
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkZUfZGCpGyKWDfhP0M_76Z4Qt1nQ_2UTj9KqhSOv2b6VWDl-PoYbzrKECp8gqfEa4/exec";
+const HISTORY_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=1974841137&single=true&output=csv";
 
 /* ── FORMATO ── */
 const fmtMXN = n => "$" + new Intl.NumberFormat("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
@@ -196,11 +115,10 @@ function setStatus(state,text){
 }
 function showMsg(text,isError){
   const b=document.getElementById("msgBox");
-  b.textContent=text;
-  b.className="msg-box show"+(isError?" err":"");
+  b.textContent=text; b.className="msg-box show"+(isError?" err":"");
 }
 
-/* ── PARSEO CSV ── */
+/* ── PARSEO CSV / FECHA ── */
 function parseCSV(text){
   return text.trim().split("\n").map(line=>{
     const cells=[]; let cur="",inQ=false;
@@ -231,21 +149,12 @@ function parseDateMX(s){
   const d=new Date(str);return isNaN(d)?null:d;
 }
 
-/* ── OBTENER NAV ACTUAL ── */
-async function fetchNAV(){
-  const res=await fetch(APPS_SCRIPT_URL);
-  if(!res.ok) throw new Error("HTTP "+res.status);
-  const data=await res.json();
-  if(!data.nav||isNaN(data.nav)) throw new Error("Respuesta inválida");
-  return parseFloat(data.nav);
-}
-
-/* ── OBTENER HISTORIAL DESDE FECHA DE ENTRADA ── */
-async function fetchHistory(){
+/* ── HISTORIAL ── */
+async function fetchHistory(fechaEntrada){
   const res=await fetch(HISTORY_CSV_URL);
-  if(!res.ok) throw new Error("No se pudo leer el historial");
+  if(!res.ok) return [];
   const rows=parseCSV(await res.text());
-  const entryDate=new Date(ACCIONISTA.fechaEntrada);
+  const entryDate=new Date(fechaEntrada);
   const out=[];
   rows.forEach(r=>{
     if(!r[0]||!r[1]) return;
@@ -258,104 +167,172 @@ async function fetchHistory(){
 
 /* ── GRÁFICA ── */
 let chartInst=null;
-function renderChart(history, entryNAV){
+function renderChart(history,entryNAV,containerId){
   if(!history.length) return;
-  const isUp = history.at(-1).nav >= entryNAV;
-  const color = isUp ? "#2D5016" : "#8B2000";
-  const bgColor = isUp ? "rgba(45,80,22,0.06)" : "rgba(139,32,0,0.06)";
-  const labels = history.map(h=>h.date.toLocaleDateString("es-MX",{day:"numeric",month:"short"}));
-  // Mostrar % de cambio desde el precio de compra del accionista
-  const values = history.map(h=>((h.nav - entryNAV)/entryNAV)*100);
-
+  const isUp=history.at(-1).nav>=entryNAV;
+  const color=isUp?"#2D5016":"#8B2000";
+  const labels=history.map(h=>h.date.toLocaleDateString("es-MX",{day:"numeric",month:"short"}));
+  const values=history.map(h=>((h.nav-entryNAV)/entryNAV)*100);
   if(chartInst) chartInst.destroy();
-  chartInst=new Chart(document.getElementById("navChart"),{
+  chartInst=new Chart(document.getElementById(containerId),{
     type:"line",
-    data:{labels,datasets:[{
-      data:values, borderColor:color, backgroundColor:bgColor,
-      fill:true, tension:0.2, pointRadius:0, pointHoverRadius:4,
-      pointHoverBackgroundColor:color, borderWidth:1.5,
-    }]},
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{
-        backgroundColor:"#1A1A18",titleColor:"#E8E4D8",bodyColor:"#A8A49A",
-        borderColor:"#2D5016",borderWidth:1,padding:10,cornerRadius:2,
-        callbacks:{
-          label:c=>"Rendimiento: "+(c.raw>=0?"+":"")+c.raw.toFixed(3)+"%",
-          afterLabel:c=>"NAV: "+fmtNAV(history[c.dataIndex].nav),
-        }
-      }},
+    data:{labels,datasets:[{data:values,borderColor:color,backgroundColor:color+"10",fill:true,tension:0.2,pointRadius:0,pointHoverRadius:4,pointHoverBackgroundColor:color,borderWidth:1.5}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:"#1A1A18",titleColor:"#E8E4D8",bodyColor:"#A8A49A",borderColor:"#2D5016",borderWidth:1,padding:10,cornerRadius:2,
+        callbacks:{label:c=>"Rendimiento: "+(c.raw>=0?"+":"")+c.raw.toFixed(3)+"%",afterLabel:c=>"NAV: "+fmtNAV(history[c.dataIndex].nav)}}},
       scales:{
         x:{grid:{display:false},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},maxTicksLimit:6}},
-        y:{grid:{color:"rgba(0,0,0,0.04)"},border:{dash:[3,3]},
-          ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},callback:v=>(v>=0?"+":"")+v.toFixed(1)+"%"}}
+        y:{grid:{color:"rgba(0,0,0,0.04)"},border:{dash:[3,3]},ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},callback:v=>(v>=0?"+":"")+v.toFixed(1)+"%"}}
       }
     }
   });
-
-  // Label de "desde"
   const sinceDate=history[0].date.toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"});
   document.getElementById("chartSince").textContent="desde "+sinceDate;
 }
 
-/* ── RENDER PRINCIPAL ── */
-async function render(){
-  document.getElementById("greetingName").textContent="Hola, "+ACCIONISTA.saludo;
-  document.getElementById("greetingDate").textContent=
+/* ── BUILD UI (se construye dinámicamente con datos del Sheet) ── */
+function buildUI(accionista){
+  const saludo = accionista.nombre.split(" ")[0];
+  document.getElementById("greetingName").textContent = "Hola, "+saludo;
+  document.getElementById("greetingDate").textContent =
     new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-  document.getElementById("footnoteText").textContent=
-    "Estado de cuenta exclusivo y confidencial para "+ACCIONISTA.nombre+". El valor se actualiza en tiempo real con base en el NAV del fondo. Para consultas contacta al administrador.";
-  document.getElementById("detailName").textContent=ACCIONISTA.nombre;
+  document.getElementById("footnoteText").textContent =
+    "Estado de cuenta exclusivo y confidencial para "+accionista.nombre+". El valor se actualiza en tiempo real con base en el NAV del fondo. Para consultas contacta al administrador.";
+
+  document.getElementById("mainContent").innerHTML = `
+    <div class="cards">
+      <div class="card">
+        <div class="card-k">Tus acciones</div>
+        <div class="card-v-big accent" id="cardShares">—</div>
+        <div class="card-sub">unidades</div>
+      </div>
+      <div class="card">
+        <div class="card-k">Valor actual de tu inversión</div>
+        <div class="card-v-big" id="cardValue">—</div>
+        <div class="card-sub">MXN</div>
+      </div>
+      <div class="card">
+        <div class="card-k">NAV por acción hoy</div>
+        <div class="card-v" id="cardNav">—</div>
+        <div class="card-sub">MXN / acción</div>
+      </div>
+      <div class="card">
+        <div class="card-k">Tu precio promedio ponderado</div>
+        <div class="card-v" id="cardCost">—</div>
+        <div class="card-sub">MXN / acción</div>
+      </div>
+    </div>
+
+    <div class="perf-row">
+      <div class="perf-label">Ganancia / pérdida sobre tu inversión</div>
+      <div class="perf-value neutral" id="perfValue">—</div>
+    </div>
+
+    <div class="chart-section">
+      <div class="chart-head">
+        <div class="chart-title">Evolución del fondo desde tu entrada</div>
+        <div class="chart-since" id="chartSince">—</div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="navChart"></canvas>
+      </div>
+    </div>
+
+    <div class="update-row">
+      <span class="update-label">Última actualización</span>
+      <span class="update-val" id="lastUpdate">—</span>
+    </div>
+
+    <div class="detail">
+      <div class="detail-title">Resumen de tu cuenta</div>
+      <div class="detail-row"><span class="detail-k">Nombre</span><span class="detail-v">${accionista.nombre}</span></div>
+      <div class="detail-row"><span class="detail-k">Acciones</span><span class="detail-v" id="detailShares">—</span></div>
+      <div class="detail-row"><span class="detail-k">Precio promedio ponderado</span><span class="detail-v" id="detailCost">—</span></div>
+      <div class="detail-row"><span class="detail-k">Inversión total</span><span class="detail-v" id="detailInvested">—</span></div>
+      <div class="detail-row"><span class="detail-k">Valor actual</span><span class="detail-v" id="detailValue">—</span></div>
+      <div class="detail-row"><span class="detail-k">Ganancia / pérdida</span><span class="detail-v" id="detailPnL">—</span></div>
+      <div class="detail-row"><span class="detail-k">Rendimiento</span><span class="detail-v" id="detailPct">—</span></div>
+    </div>`;
+}
+
+/* ── RENDER CON DATOS ── */
+async function fillData(accionista, nav){
+  const valorActual      = accionista.acciones * nav;
+  const inversionInicial = accionista.acciones * accionista.precioPromedio;
+  const pnlPesos         = valorActual - inversionInicial;
+  const pnlPct           = ((nav - accionista.precioPromedio) / accionista.precioPromedio) * 100;
+  const isUp             = pnlPct >= 0;
+
+  document.getElementById("cardShares").textContent = fmtInt(accionista.acciones);
+  document.getElementById("cardValue").textContent  = fmtMXN(valorActual);
+  document.getElementById("cardNav").textContent    = fmtNAV(nav);
+  document.getElementById("cardCost").textContent   = fmtNAV(accionista.precioPromedio);
+
+  const perf=document.getElementById("perfValue");
+  perf.className="perf-value "+(isUp?"up":"down");
+  perf.textContent=(isUp?"+":"")+pnlPct.toFixed(2)+"% · "+(isUp?"+":"")+fmtMXN(pnlPesos);
+
+  document.getElementById("detailShares").textContent   = fmtInt(accionista.acciones)+" acciones";
+  document.getElementById("detailCost").textContent     = fmtNAV(accionista.precioPromedio)+" / acción";
+  document.getElementById("detailInvested").textContent = fmtMXN(inversionInicial);
+  document.getElementById("detailValue").textContent    = fmtMXN(valorActual);
+
+  const pnlEl=document.getElementById("detailPnL");
+  pnlEl.style.color=isUp?"var(--up)":"var(--down)";
+  pnlEl.textContent=(isUp?"+":"")+fmtMXN(pnlPesos);
+
+  const pctEl=document.getElementById("detailPct");
+  pctEl.style.color=isUp?"var(--up)":"var(--down)";
+  pctEl.textContent=(isUp?"+":"")+pnlPct.toFixed(3)+"%";
+
+  document.getElementById("lastUpdate").textContent=
+    new Date().toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short"});
+}
+
+/* ── MAIN ── */
+async function render(){
   setStatus("loading","Cargando");
-
   try{
-    const [nav, history] = await Promise.all([fetchNAV(), fetchHistory().catch(()=>[])]);
+    // 1. Obtener NAV + datos del accionista desde Apps Script
+    const res=await fetch(APPS_SCRIPT_URL);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data=await res.json();
 
-    const valorActual      = ACCIONISTA.acciones * nav;
-    const inversionInicial = ACCIONISTA.acciones * ACCIONISTA.precioPromedio;
-    const pnlPesos         = valorActual - inversionInicial;
-    const pnlPct           = ((nav - ACCIONISTA.precioPromedio) / ACCIONISTA.precioPromedio) * 100;
-    const isUp             = pnlPct >= 0;
+    const nav=parseFloat(data.nav);
+    if(!data.accionistas||!data.accionistas[CLAVE])
+      throw new Error("No se encontró la clave '"+CLAVE+"' en la Hoja 5");
 
-    document.getElementById("cardShares").textContent = fmtInt(ACCIONISTA.acciones);
-    document.getElementById("cardValue").textContent  = fmtMXN(valorActual);
-    document.getElementById("cardNav").textContent    = fmtNAV(nav);
-    document.getElementById("cardCost").textContent   = fmtNAV(ACCIONISTA.precioPromedio);
+    const a=data.accionistas[CLAVE];
+    const accionista={
+      nombre:        a.nombre,
+      acciones:      parseFloat(a.acciones),
+      precioPromedio:parseFloat(a.precioPromedio),
+      fechaEntrada:  a.fechaEntrada,
+    };
 
-    const perf=document.getElementById("perfValue");
-    perf.className="perf-value "+(isUp?"up":"down");
-    perf.textContent=(isUp?"+":"")+pnlPct.toFixed(2)+"% · "+(isUp?"+":"")+fmtMXN(pnlPesos);
+    // 2. Construir UI con nombre real del Sheet
+    buildUI(accionista);
 
-    document.getElementById("detailShares").textContent   = fmtInt(ACCIONISTA.acciones)+" acciones";
-    document.getElementById("detailCost").textContent     = fmtNAV(ACCIONISTA.precioPromedio)+" / acción";
-    document.getElementById("detailInvested").textContent = fmtMXN(inversionInicial);
-    document.getElementById("detailValue").textContent    = fmtMXN(valorActual);
+    // 3. Llenar datos numéricos
+    await fillData(accionista, nav);
 
-    const pnlEl=document.getElementById("detailPnL");
-    pnlEl.style.color=isUp?"var(--up)":"var(--down)";
-    pnlEl.textContent=(isUp?"+":"")+fmtMXN(pnlPesos);
-
-    const pctEl=document.getElementById("detailPct");
-    pctEl.style.color=isUp?"var(--up)":"var(--down)";
-    pctEl.textContent=(isUp?"+":"")+pnlPct.toFixed(3)+"%";
-
-    document.getElementById("lastUpdate").textContent=
-      new Date().toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short"});
-
-    // Gráfica: usar el NAV del día de entrada como referencia base
-    // Si hay historial, el primer punto es la referencia; si no, usar precioPromedio
-    const entryNAV = history.length > 0 ? history[0].nav : ACCIONISTA.precioPromedio;
-    if(history.length > 0) renderChart(history, entryNAV);
+    // 4. Gráfica histórica
+    const history=await fetchHistory(accionista.fechaEntrada).catch(()=>[]);
+    if(history.length>1){
+      const entryNAV=history[0].nav;
+      renderChart(history,entryNAV,"navChart");
+    }
 
     setStatus("ok","En vivo");
-  } catch(e){
+  }catch(e){
     setStatus("error","Sin conexión");
-    showMsg("No se pudo obtener el NAV: "+e.message+". Intenta recargar.", true);
+    showMsg("Error al cargar: "+e.message+". Intenta recargar la página.",true);
+    console.error(e);
   }
 }
 
 render();
-setInterval(render, 60000);
+setInterval(render,60000);
 </script>
 </body>
 </html>
