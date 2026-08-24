@@ -123,6 +123,21 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); -w
   flex-wrap: wrap; gap: 12px;
 }
 .sec-title { font-family: var(--serif); font-size: 20px; font-weight: 400; color: var(--ink); }
+.sec-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); }
+
+/* ── DIVIDENDOS ──────────────────────────────────────── */
+.div-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px; background:var(--rule-lt); border:1px solid var(--rule); }
+.div-stat { background:var(--white); padding:18px 20px; }
+.div-stat-k { font-family:var(--mono); font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:6px; }
+.div-stat-v { font-family:var(--mono); font-size:20px; font-weight:500; color:var(--ink); }
+.div-stat-v.up { color:var(--up); }
+.div-sector-list { display:flex; flex-direction:column; gap:0; }
+.div-sector-row { display:grid; grid-template-columns:1.6fr 2fr auto; align-items:center; gap:16px; padding:13px 0; border-bottom:1px solid var(--rule-lt); }
+.div-sector-row:last-child { border-bottom:none; }
+.div-sector-name { font-size:13px; color:var(--ink); }
+.div-sector-bar-track { height:4px; background:var(--rule-lt); }
+.div-sector-bar-fill { height:100%; }
+.div-sector-pct { font-family:var(--mono); font-size:13px; color:var(--ink-mid); text-align:right; min-width:52px; }
 .sec-controls { display: flex; gap: 2px; }
 .tab-btn {
   font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
@@ -328,6 +343,32 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); -w
     </div>
   </div>
   <div class="alloc-grid" id="allocGrid"></div>
+
+  <!-- DIVIDENDOS -->
+  <div class="sec-head">
+    <div class="sec-title">Ingresos por dividendos</div>
+    <div class="sec-sub" id="divSince">—</div>
+  </div>
+
+  <div class="div-summary" id="divSummary"></div>
+
+  <div class="card" style="margin-top:1px;">
+    <div class="pnl-card-head">
+      <div class="pnl-card-title">Dividendos recibidos por mes</div>
+    </div>
+    <div class="chart-wrap" style="height:240px;"><canvas id="divMonthlyChart"></canvas></div>
+  </div>
+
+  <div class="card" style="margin-top:1px;">
+    <div class="pnl-card-head">
+      <div class="pnl-card-title">Origen de los dividendos por sector</div>
+    </div>
+    <div class="div-sector-list" id="divSectorList"></div>
+  </div>
+
+  <div style="margin-top:16px;font-family:var(--mono);font-size:11px;color:var(--ink-dim);line-height:1.7;">
+    El yield representa los dividendos generados en los últimos 12 meses como porcentaje del valor del portafolio. Es ingreso adicional a la apreciación de los activos.
+  </div>
 
   <!-- DESEMPEÑO HISTÓRICO (desplegable) -->
   <div class="sec-head">
@@ -806,12 +847,112 @@ function renderMainChart(history, range){
 }
 
 /* ── EVENT LISTENERS DE RANGOS ───────────────────────── */
+// Guarda el rango seleccionado para que no se pierda al auto-actualizar
+let activeRange = "ytd";
+
 document.getElementById("rangeTabs").addEventListener("click", e=>{
   if(e.target.tagName!=="BUTTON") return;
   document.querySelectorAll(".range-tab").forEach(b=>b.classList.remove("active"));
   e.target.classList.add("active");
-  if(fullHistory.length) renderMainChart(fullHistory, e.target.dataset.range);
+  activeRange = e.target.dataset.range;
+  if(fullHistory.length) renderMainChart(fullHistory, activeRange);
 });
+
+/* ── DIVIDENDOS ──────────────────────────────────────── */
+const DIVIDENDS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=245611135&single=true&output=csv";
+
+const DIV_SECTOR_COLORS = {
+  "FIBRAs México":"#6B1A1A", "REITS":"#3A5A7A", "EEUU":"#1A3A5C",
+  "Mercados desarrollados":"#5A6B4A", "Mercados emergentes":"#4A7A28",
+  "Renta fija":"#2D5016", "Cripto":"#8B6914", "Otros":"#9A9A90",
+};
+
+async function fetchDividends(){
+  const res = await fetch(DIVIDENDS_CSV_URL);
+  if(!res.ok) throw new Error("Hoja 6: HTTP "+res.status);
+  const rows = parseCSV(await res.text());
+  const out = [];
+  rows.forEach((r,i)=>{
+    if(i===0) return;
+    if(!r[0]) return;
+    const d = parseDateMX(r[0]); if(!d) return;
+    const mxn = toNum(r[6]);
+    if(isNaN(mxn) || mxn === 0) return;
+    out.push({ date:d, ticker:(r[1]||"").trim(), sector:(r[2]||"Otros").trim(), mxn });
+  });
+  return out.sort((a,b)=>a.date-b.date);
+}
+
+let divChartInst = null;
+
+function renderDividends(dividends, portfolioValue){
+  if(!dividends.length || !portfolioValue) return;
+
+  const byMonth = {};
+  dividends.forEach(d=>{
+    const key = d.date.getFullYear()+"-"+String(d.date.getMonth()+1).padStart(2,"0");
+    byMonth[key] = (byMonth[key]||0) + d.mxn;
+  });
+  const months = Object.keys(byMonth).sort();
+
+  const last12 = months.slice(-12);
+  const total12 = last12.reduce((s,m)=>s+byMonth[m], 0);
+  const yieldPct = (total12 / portfolioValue) * 100;
+  const avgMonthlyPct = (total12/last12.length / portfolioValue) * 100;
+
+  const bestMonth = months.reduce((b,m)=> byMonth[m]>byMonth[b] ? m : b, months[0]);
+  const bestMonthPct = (byMonth[bestMonth]/portfolioValue)*100;
+  const bestLabel = new Date(bestMonth+"-15").toLocaleDateString("es-MX",{month:"short",year:"2-digit"});
+
+  document.getElementById("divSummary").innerHTML = `
+    <div class="div-stat"><div class="div-stat-k">Yield anual (12 meses)</div><div class="div-stat-v up">${yieldPct.toFixed(2)}%</div></div>
+    <div class="div-stat"><div class="div-stat-k">Promedio mensual</div><div class="div-stat-v">${avgMonthlyPct.toFixed(3)}%</div></div>
+    <div class="div-stat"><div class="div-stat-k">Mejor mes — ${bestLabel}</div><div class="div-stat-v up">${bestMonthPct.toFixed(3)}%</div></div>
+    <div class="div-stat"><div class="div-stat-k">Meses con ingresos</div><div class="div-stat-v">${months.length}</div></div>`;
+
+  const first = dividends[0].date, last = dividends.at(-1).date;
+  const f = d => d.toLocaleDateString("es-MX",{month:"short",year:"numeric"});
+  document.getElementById("divSince").textContent = f(first)+" — "+f(last);
+
+  const labels = months.map(m=>new Date(m+"-15").toLocaleDateString("es-MX",{month:"short",year:"2-digit"}));
+  const values = months.map(m=>(byMonth[m]/portfolioValue)*100);
+
+  if(divChartInst) divChartInst.destroy();
+  divChartInst = new Chart(document.getElementById("divMonthlyChart"),{
+    type:"bar",
+    data:{ labels, datasets:[{ data:values, backgroundColor:"rgba(45,80,22,0.20)", borderColor:"#2D5016", borderWidth:1.5, borderRadius:2 }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{
+        backgroundColor:"#1A1A18", titleColor:"#E8E4D8", bodyColor:"#A8A49A",
+        borderColor:"#2D5016", borderWidth:1, padding:10, cornerRadius:2,
+        callbacks:{ label:c=>"Dividendos: "+c.raw.toFixed(4)+"% del portafolio" }
+      }},
+      scales:{
+        x:{ grid:{display:false}, ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},maxTicksLimit:12} },
+        y:{ grid:{color:"rgba(0,0,0,0.04)"}, border:{dash:[3,3]},
+            ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},callback:v=>v.toFixed(2)+"%"} }
+      }
+    }
+  });
+
+  const bySector = {};
+  dividends.forEach(d=>{ bySector[d.sector] = (bySector[d.sector]||0) + d.mxn; });
+  const totalAll = Object.values(bySector).reduce((s,v)=>s+v,0);
+  const sectorArr = Object.entries(bySector).sort(([,a],[,b])=>b-a);
+  const maxVal = sectorArr[0][1];
+
+  document.getElementById("divSectorList").innerHTML = sectorArr.map(([name,val])=>{
+    const pct = (val/totalAll)*100;
+    const barW = (val/maxVal)*100;
+    const color = DIV_SECTOR_COLORS[name] || DIV_SECTOR_COLORS["Otros"];
+    return `<div class="div-sector-row">
+      <div class="div-sector-name">${name}</div>
+      <div class="div-sector-bar-track"><div class="div-sector-bar-fill" style="width:${barW}%;background:${color}"></div></div>
+      <div class="div-sector-pct">${pct.toFixed(1)}%</div>
+    </div>`;
+  }).join("");
+}
 
 /* ── PRECIO DE ACCIÓN EN TIEMPO REAL ─────────────────── */
 function renderNavLive(positions, shares, history){
@@ -999,7 +1140,7 @@ async function loadData(){
     renderHero(positions,1000000,fullHistory);
     renderNavLive(positions,1000000,fullHistory);
     renderAlloc(positions);
-    renderMainChart(fullHistory, "ytd");
+    renderMainChart(fullHistory, activeRange);
     showError("Modo demostración con datos simulados. Conecta tus Google Sheets en CONFIG para ver datos reales.");
     return;
   }
@@ -1017,9 +1158,15 @@ async function loadData(){
     renderHero(positions,shares,history);
     renderNavLive(positions,shares,history);
     renderAlloc(positions);
-    renderMainChart(history, "ytd"); // acumulado histórico — YTD por defecto
+    renderMainChart(history, activeRange); // conserva el rango que el usuario eligió
     if(pnlOpen){renderPnL(history);pnlRendered=true;}
     else{pnlRendered=false;}
+
+    // Dividendos (no bloquea el resto si falla)
+    const portfolioValue = positions.reduce((s,p)=>s+p.valueMXN,0);
+    fetchDividends()
+      .then(divs => renderDividends(divs, portfolioValue))
+      .catch(e => console.warn("Dividendos no disponibles:", e.message));
   } catch(e){
     setLive(false,false);
     showError("Error al cargar datos: "+e.message+". Se reintentará en "+CONFIG.REFRESH_SECONDS+" segundos.");
