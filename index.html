@@ -126,18 +126,30 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); -w
 .sec-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); }
 
 /* ── DIVIDENDOS ──────────────────────────────────────── */
+.div-toggle-btn {
+  font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase;
+  background:none; border:1px solid var(--rule); color:var(--ink-dim);
+  padding:6px 13px; cursor:pointer; transition:all .15s; white-space:nowrap;
+}
+.div-toggle-btn:hover { color:var(--ink); background:var(--white); }
+.div-toggle-btn.on { background:var(--accent); color:#fff; border-color:var(--accent); }
 .div-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px; background:var(--rule-lt); border:1px solid var(--rule); }
 .div-stat { background:var(--white); padding:18px 20px; }
 .div-stat-k { font-family:var(--mono); font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:6px; }
 .div-stat-v { font-family:var(--mono); font-size:20px; font-weight:500; color:var(--ink); }
 .div-stat-v.up { color:var(--up); }
 .div-sector-list { display:flex; flex-direction:column; gap:0; }
-.div-sector-row { display:grid; grid-template-columns:1.6fr 2fr auto; align-items:center; gap:16px; padding:13px 0; border-bottom:1px solid var(--rule-lt); }
+.div-sector-row { display:grid; grid-template-columns:1.5fr 1.8fr auto auto; align-items:center; gap:14px; padding:13px 0; border-bottom:1px solid var(--rule-lt); }
 .div-sector-row:last-child { border-bottom:none; }
 .div-sector-name { font-size:13px; color:var(--ink); }
 .div-sector-bar-track { height:4px; background:var(--rule-lt); }
 .div-sector-bar-fill { height:100%; }
-.div-sector-pct { font-family:var(--mono); font-size:13px; color:var(--ink-mid); text-align:right; min-width:52px; }
+.div-sector-pct { font-family:var(--mono); font-size:12px; color:var(--ink-dim); text-align:right; min-width:48px; }
+.div-sector-yield { font-family:var(--mono); font-size:13px; font-weight:500; color:var(--up); text-align:right; min-width:56px; }
+.div-sector-head { display:grid; grid-template-columns:1.5fr 1.8fr auto auto; gap:14px; padding-bottom:10px; border-bottom:1px solid var(--rule); margin-bottom:4px; }
+.div-sector-head span { font-family:var(--mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-dim); }
+.div-sector-head span:nth-child(3),
+.div-sector-head span:nth-child(4) { text-align:right; }
 .sec-controls { display: flex; gap: 2px; }
 .tab-btn {
   font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
@@ -268,15 +280,18 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); -w
         <div class="main-chart-pct flat" id="mainChartPct">—</div>
         <div class="main-chart-label" id="mainChartLabel">—</div>
       </div>
-      <div class="range-tabs" id="rangeTabs">
-        <button class="range-tab" data-range="1">1D</button>
-        <button class="range-tab" data-range="5">5D</button>
-        <button class="range-tab" data-range="30">1M</button>
-        <button class="range-tab" data-range="90">3M</button>
-        <button class="range-tab" data-range="180">6M</button>
-        <button class="range-tab" data-range="365">1A</button>
-        <button class="range-tab active" data-range="ytd">YTD</button>
-        <button class="range-tab" data-range="all">Todo</button>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+        <div class="range-tabs" id="rangeTabs">
+          <button class="range-tab" data-range="1">1D</button>
+          <button class="range-tab" data-range="5">5D</button>
+          <button class="range-tab" data-range="30">1M</button>
+          <button class="range-tab" data-range="90">3M</button>
+          <button class="range-tab" data-range="180">6M</button>
+          <button class="range-tab" data-range="365">1A</button>
+          <button class="range-tab active" data-range="ytd">YTD</button>
+          <button class="range-tab" data-range="all">Todo</button>
+        </div>
+        <button class="div-toggle-btn" id="divToggleBtn" onclick="toggleDividends()">+ Incluir dividendos</button>
       </div>
     </div>
     <div class="main-chart-wrap"><canvas id="mainNavChart"></canvas></div>
@@ -713,8 +728,13 @@ let mainNavInst = null;
 
 function renderMainChart(history, range){
   // Calcular PnL ajustado por flujos para TODO el historial
-  const allPnL = computeTotalPnL(history);
+  let allPnL = computeTotalPnL(history);
   if(!allPnL.length) return;
+
+  // Si el toggle está activo, sumar los dividendos recibidos
+  if(includeDividends && dividendsCache.length){
+    allPnL = addDividendsToPnL(allPnL, dividendsCache);
+  }
 
   // Filtrar al rango seleccionado
   const sorted = allPnL.filter(p=>p.date!=null).sort((a,b)=>a.date-b.date);
@@ -773,7 +793,8 @@ function renderMainChart(history, range){
   pctEl.className = "main-chart-pct " + (isUp?"up":"down");
   pctEl.textContent = (isUp?"+":"") + totalPct.toFixed(3) + "%";
   const rangeLabels = {"1":"último día","5":"últimos 5 días","30":"último mes","90":"últimos 3 meses","180":"últimos 6 meses","365":"último año","ytd":"lo que va del año","all":"desde el inicio del fondo"};
-  document.getElementById("mainChartLabel").textContent = "Rendimiento puro de mercado · " + (rangeLabels[range]||range);
+  const labelBase = includeDividends ? "Rendimiento con dividendos · " : "Rendimiento de mercado · ";
+  document.getElementById("mainChartLabel").textContent = labelBase + (rangeLabels[range]||range);
 
   // Estadísticas del período
   const maxPct = Math.max(...periodSeries.map(p=>p.pct));
@@ -849,6 +870,38 @@ function renderMainChart(history, range){
 /* ── EVENT LISTENERS DE RANGOS ───────────────────────── */
 // Guarda el rango seleccionado para que no se pierda al auto-actualizar
 let activeRange = "ytd";
+// Estado del toggle de dividendos y cache de los datos
+let includeDividends = false;
+let dividendsCache = [];
+
+/* Suma los dividendos acumulados a cada punto de la serie de PnL.
+   Los dividendos son ingreso real: se acumulan desde la fecha en que se reciben. */
+function addDividendsToPnL(pnlSeries, dividends){
+  if(!dividends.length) return pnlSeries;
+  const sortedDivs = [...dividends].sort((a,b)=>a.date-b.date);
+  let idx = 0, accum = 0;
+  return pnlSeries.map(p=>{
+    let todayDivs = 0;
+    while(idx < sortedDivs.length && sortedDivs[idx].date <= p.date){
+      accum += sortedDivs[idx].mxn;
+      todayDivs += sortedDivs[idx].mxn;
+      idx++;
+    }
+    return {
+      date: p.date,
+      dailyPnL: p.dailyPnL + todayDivs,
+      cumulative: p.cumulative + accum,
+    };
+  });
+}
+
+function toggleDividends(){
+  includeDividends = !includeDividends;
+  const btn = document.getElementById("divToggleBtn");
+  btn.classList.toggle("on", includeDividends);
+  btn.textContent = includeDividends ? "− Quitar dividendos" : "+ Incluir dividendos";
+  if(fullHistory.length) renderMainChart(fullHistory, activeRange);
+}
 
 document.getElementById("rangeTabs").addEventListener("click", e=>{
   if(e.target.tagName!=="BUTTON") return;
@@ -865,6 +918,20 @@ const DIV_SECTOR_COLORS = {
   "FIBRAs México":"#6B1A1A", "REITS":"#3A5A7A", "EEUU":"#1A3A5C",
   "Mercados desarrollados":"#5A6B4A", "Mercados emergentes":"#4A7A28",
   "Renta fija":"#2D5016", "Cripto":"#8B6914", "Otros":"#9A9A90",
+};
+
+// Mapea el nombre del sector en la Hoja 6 a la categoría del portafolio (Hoja 2)
+// para poder calcular el yield: dividendos del sector / valor del sector
+const DIV_TO_CATEGORY = {
+  "FIBRAs México":         "FIBRAs México",
+  "REITS":                 "REITs EE.UU.",
+  "REITs":                 "REITs EE.UU.",
+  "EEUU":                  "Renta variable EE.UU.",
+  "EE.UU.":                "Renta variable EE.UU.",
+  "Mercados desarrollados":"Mercados desarrollados",
+  "Mercados emergentes":   "Mercados emergentes",
+  "Renta fija":            "Renta fija",
+  "Cripto":                "Cripto",
 };
 
 async function fetchDividends(){
@@ -885,8 +952,9 @@ async function fetchDividends(){
 
 let divChartInst = null;
 
-function renderDividends(dividends, portfolioValue){
+function renderDividends(dividends, portfolioValue, sectorValues){
   if(!dividends.length || !portfolioValue) return;
+  sectorValues = sectorValues || {};
 
   const byMonth = {};
   dividends.forEach(d=>{
@@ -936,22 +1004,41 @@ function renderDividends(dividends, portfolioValue){
     }
   });
 
-  const bySector = {};
-  dividends.forEach(d=>{ bySector[d.sector] = (bySector[d.sector]||0) + d.mxn; });
-  const totalAll = Object.values(bySector).reduce((s,v)=>s+v,0);
-  const sectorArr = Object.entries(bySector).sort(([,a],[,b])=>b-a);
+  // Desglose por sector con yield anual (dividendos 12m / valor del sector)
+  const bySectorAll = {}, bySector12 = {};
+  const cut12 = last12[0]; // primer mes de la ventana de 12 meses
+  dividends.forEach(d=>{
+    bySectorAll[d.sector] = (bySectorAll[d.sector]||0) + d.mxn;
+    const key = d.date.getFullYear()+"-"+String(d.date.getMonth()+1).padStart(2,"0");
+    if(key >= cut12) bySector12[d.sector] = (bySector12[d.sector]||0) + d.mxn;
+  });
+
+  const totalAll = Object.values(bySectorAll).reduce((s,v)=>s+v,0);
+  const sectorArr = Object.entries(bySectorAll).sort(([,a],[,b])=>b-a);
   const maxVal = sectorArr[0][1];
 
-  document.getElementById("divSectorList").innerHTML = sectorArr.map(([name,val])=>{
-    const pct = (val/totalAll)*100;
-    const barW = (val/maxVal)*100;
-    const color = DIV_SECTOR_COLORS[name] || DIV_SECTOR_COLORS["Otros"];
-    return `<div class="div-sector-row">
-      <div class="div-sector-name">${name}</div>
-      <div class="div-sector-bar-track"><div class="div-sector-bar-fill" style="width:${barW}%;background:${color}"></div></div>
-      <div class="div-sector-pct">${pct.toFixed(1)}%</div>
-    </div>`;
-  }).join("");
+  document.getElementById("divSectorList").innerHTML =
+    `<div class="div-sector-head">
+       <span>Sector</span><span></span><span>% del total</span><span>Yield anual</span>
+     </div>` +
+    sectorArr.map(([name,val])=>{
+      const pct   = (val/totalAll)*100;
+      const barW  = (val/maxVal)*100;
+      const color = DIV_SECTOR_COLORS[name] || DIV_SECTOR_COLORS["Otros"];
+      // Yield: dividendos de los últimos 12 meses / valor actual de ese sector
+      const cat      = DIV_TO_CATEGORY[name];
+      const sectorVal= cat ? (sectorValues[cat]||0) : 0;
+      const div12sec = bySector12[name]||0;
+      const yieldStr = sectorVal > 0
+        ? ((div12sec/sectorVal)*100).toFixed(2)+"%"
+        : "—";
+      return `<div class="div-sector-row">
+        <div class="div-sector-name">${name}</div>
+        <div class="div-sector-bar-track"><div class="div-sector-bar-fill" style="width:${barW}%;background:${color}"></div></div>
+        <div class="div-sector-pct">${pct.toFixed(1)}%</div>
+        <div class="div-sector-yield">${yieldStr}</div>
+      </div>`;
+    }).join("");
 }
 
 /* ── PRECIO DE ACCIÓN EN TIEMPO REAL ─────────────────── */
@@ -1162,10 +1249,19 @@ async function loadData(){
     if(pnlOpen){renderPnL(history);pnlRendered=true;}
     else{pnlRendered=false;}
 
-    // Dividendos (no bloquea el resto si falla)
+    // Dividendos: cachear para el toggle y calcular yield por sector
     const portfolioValue = positions.reduce((s,p)=>s+p.valueMXN,0);
+    const sectorValues = {};
+    positions.forEach(p=>{
+      sectorValues[p.category] = (sectorValues[p.category]||0) + p.valueMXN;
+    });
     fetchDividends()
-      .then(divs => renderDividends(divs, portfolioValue))
+      .then(divs => {
+        dividendsCache = divs;
+        renderDividends(divs, portfolioValue, sectorValues);
+        // Si el toggle ya estaba activo, redibujar la gráfica con dividendos
+        if(includeDividends) renderMainChart(fullHistory, activeRange);
+      })
       .catch(e => console.warn("Dividendos no disponibles:", e.message));
   } catch(e){
     setLive(false,false);
