@@ -447,6 +447,8 @@ const CONFIG = {
   REFRESH_SECONDS: 60
 };
 
+// IMPORTANTE: cada ticker nuevo que compres debe agregarse aquí,
+// si no, cae en "Otros" y distorsiona la asignación por sector.
 const CATEGORY_MAP = {
   "BTCMX":"Cripto","Ether":"Cripto","Solana":"Cripto",
   "Cetes":"Renta fija",
@@ -454,7 +456,7 @@ const CATEGORY_MAP = {
   "VWO":"Mercados emergentes","VEA":"Mercados desarrollados","VNQ":"REITs EE.UU.",
   "FUNO11":"FIBRAs México","DANHOS13":"FIBRAs México","FNOVA17":"FIBRAs México",
   "FIBRAPL14":"FIBRAs México","FIBRAMQ12":"FIBRAs México","FMTY14":"FIBRAs México",
-  "FCFE18":"FIBRAs México","FSHOP13":"FIBRAs México",
+  "FCFE18":"FIBRAs México","FSHOP13":"FIBRAs México","NEXT25":"FIBRAs México",
 };
 const CAT_COLORS = {
   "Cripto":"#8B6914","Renta fija":"#2D5016","Renta variable EE.UU.":"#1A3A5C",
@@ -1031,7 +1033,7 @@ function renderDividends(dividends, portfolioValue, sectorValues){
       const div12sec = bySector12[name]||0;
       const yieldStr = sectorVal > 0
         ? ((div12sec/sectorVal)*100).toFixed(2)+"%"
-        : "—";
+        : (div12sec > 0 ? "sin posición" : "—");
       return `<div class="div-sector-row">
         <div class="div-sector-name">${name}</div>
         <div class="div-sector-bar-track"><div class="div-sector-bar-fill" style="width:${barW}%;background:${color}"></div></div>
