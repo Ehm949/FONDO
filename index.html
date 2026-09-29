@@ -125,6 +125,29 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); -w
 .sec-title { font-family: var(--serif); font-size: 20px; font-weight: 400; color: var(--ink); }
 .sec-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); }
 
+/* ── TRACK RECORD ────────────────────────────────────── */
+.tr-legend-item { display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10px; color:var(--ink-mid); }
+.tr-legend-sw { width:14px; height:2px; flex-shrink:0; }
+.tr-caveat {
+  margin-top:14px; padding:14px 16px; border-left:3px solid var(--rule);
+  background:var(--white); font-size:12px; color:var(--ink-mid); line-height:1.75;
+}
+.tr-caveat b { color:var(--ink); font-weight:500; }
+
+/* ── CAÍDAS ──────────────────────────────────────────── */
+.dd-list { display:flex; flex-direction:column; gap:0; }
+.dd-row { padding:16px 0; border-bottom:1px solid var(--rule-lt); }
+.dd-row:last-child { border-bottom:none; }
+.dd-top { display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+.dd-period { font-family:var(--mono); font-size:12px; color:var(--ink); }
+.dd-depth { font-family:var(--mono); font-size:17px; font-weight:500; color:var(--down); }
+.dd-bar-track { height:5px; background:var(--rule-lt); margin-bottom:9px; }
+.dd-bar-fill { height:100%; background:var(--down); }
+.dd-meta { display:flex; gap:20px; flex-wrap:wrap; }
+.dd-meta-item { font-family:var(--mono); font-size:11px; color:var(--ink-dim); }
+.dd-meta-item b { color:var(--ink-mid); font-weight:500; }
+.dd-action { font-size:12px; color:var(--ink-mid); margin-top:8px; font-style:italic; }
+
 /* ── DIVIDENDOS ──────────────────────────────────────── */
 .div-toggle-btn {
   font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase;
@@ -361,6 +384,40 @@ body { background: var(--paper); color: var(--ink); font-family: var(--sans); -w
   <div class="alloc-grid" id="allocGrid"></div>
 
   <!-- DIVIDENDOS -->
+  <div class="sec-head">
+  <!-- TRACK RECORD HISTÓRICO -->
+  <div class="sec-head">
+    <div class="sec-title">Track record histórico</div>
+    <div class="sec-sub" id="trSince">—</div>
+  </div>
+
+  <div class="div-summary" id="trStats"></div>
+
+  <div class="card" style="margin-top:1px;">
+    <div class="pnl-card-head">
+      <div class="pnl-card-title">Crecimiento de $100 invertidos</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;" id="trLegend"></div>
+    </div>
+    <div class="chart-wrap" style="height:280px;"><canvas id="trChart"></canvas></div>
+  </div>
+
+  <div class="tr-caveat" id="trCaveat"></div>
+
+  <!-- CAÍDAS Y RECUPERACIONES -->
+  <div class="sec-head">
+    <div class="sec-title">Caídas y recuperaciones</div>
+    <div class="sec-sub">Qué ha pasado en los peores momentos</div>
+  </div>
+
+  <div class="div-summary" id="ddStats"></div>
+
+  <div class="card" style="margin-top:1px;">
+    <div class="pnl-card-head">
+      <div class="pnl-card-title">Historial de caídas mayores a 5%</div>
+    </div>
+    <div class="dd-list" id="ddList"></div>
+  </div>
+
   <div class="sec-head">
     <div class="sec-title">Ingresos por dividendos</div>
     <div class="sec-sub" id="divSince">—</div>
@@ -929,6 +986,165 @@ document.getElementById("rangeTabs").addEventListener("click", e=>{
   if(fullHistory.length) renderMainChart(fullHistory, activeRange);
 });
 
+/* ── TRACK RECORD HISTÓRICO (Hoja 7) ─────────────────── */
+const TRACK_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=436699686&single=true&output=csv";
+const CAIDAS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=783801800&single=true&output=csv";
+
+async function fetchTrackRecord(){
+  const res = await fetch(TRACK_CSV_URL);
+  if(!res.ok) throw new Error("Hoja 7: HTTP "+res.status);
+  const rows = parseCSV(await res.text());
+  const out = [];
+  rows.forEach(r=>{
+    const mes = (r[0]||"").trim();
+    // Solo filas cuyo primer campo sea "YYYY-MM"
+    if(!/^\d{4}-\d{2}$/.test(mes)) return;
+    const total = toNum(r[11]);
+    const rend  = toNum(r[12]);
+    const idxRF = toNum(r[13]);
+    const idxBo = toNum(r[14]);
+    const idxPo = toNum(r[15]);
+    if(isNaN(idxPo)) return;
+    out.push({ mes, rend: isNaN(rend)?null:rend, idxRF, idxBolsa:idxBo, idxPort:idxPo });
+  });
+  return out;
+}
+
+let trChartInst = null;
+
+function renderTrackRecord(tr){
+  if(tr.length < 2) return;
+
+  const first = tr[0], last = tr[tr.length-1];
+  const acum  = (last.idxPort/100 - 1) * 100;
+  const anios = tr.length / 12;
+  const anual = (Math.pow(last.idxPort/100, 1/anios) - 1) * 100;
+  const pos   = tr.filter(r=>r.rend!==null && r.rend>0).length;
+
+  const conRend = tr.filter(r=>r.rend!==null);
+  const mejor = conRend.reduce((b,r)=> r.rend>b.rend?r:b, conRend[0]);
+  const peor  = conRend.reduce((w,r)=> r.rend<w.rend?r:w, conRend[0]);
+
+  const mesLabel = m => {
+    const [y,mm] = m.split("-");
+    return new Date(+y, +mm-1, 15).toLocaleDateString("es-MX",{month:"short",year:"2-digit"});
+  };
+
+  document.getElementById("trSince").textContent =
+    mesLabel(first.mes) + " — " + mesLabel(last.mes) + " · " + tr.length + " meses";
+
+  document.getElementById("trStats").innerHTML = `
+    <div class="div-stat"><div class="div-stat-k">Rendimiento acumulado</div><div class="div-stat-v ${acum>=0?'up':''}">${acum>=0?'+':''}${acum.toFixed(2)}%</div></div>
+    <div class="div-stat"><div class="div-stat-k">Anualizado</div><div class="div-stat-v ${anual>=0?'up':''}">${anual>=0?'+':''}${anual.toFixed(2)}%</div></div>
+    <div class="div-stat"><div class="div-stat-k">Meses positivos</div><div class="div-stat-v">${pos} de ${tr.length}</div></div>
+    <div class="div-stat"><div class="div-stat-k">Mejor mes — ${mesLabel(mejor.mes)}</div><div class="div-stat-v up">+${(mejor.rend*100).toFixed(2)}%</div></div>
+    <div class="div-stat"><div class="div-stat-k">Peor mes — ${mesLabel(peor.mes)}</div><div class="div-stat-v down">${(peor.rend*100).toFixed(2)}%</div></div>`;
+
+  // Leyenda
+  const series = [
+    {name:"Portafolio total", color:"#2D5016", key:"idxPort"},
+    {name:"Bolsa",            color:"#1A3A5C", key:"idxBolsa"},
+    {name:"Renta fija",       color:"#8B6914", key:"idxRF"},
+  ];
+  document.getElementById("trLegend").innerHTML = series.map(s=>
+    `<div class="tr-legend-item"><span class="tr-legend-sw" style="background:${s.color}"></span>${s.name}</div>`
+  ).join("");
+
+  // Gráfica: crecimiento de $100
+  const labels = tr.map(r=>mesLabel(r.mes));
+  if(trChartInst) trChartInst.destroy();
+  trChartInst = new Chart(document.getElementById("trChart"),{
+    type:"line",
+    data:{ labels, datasets: series.map(s=>({
+      label: s.name,
+      data: tr.map(r=>r[s.key]),
+      borderColor: s.color,
+      backgroundColor: "transparent",
+      fill: false, tension:0.2, pointRadius:0, pointHoverRadius:4,
+      pointHoverBackgroundColor: s.color, borderWidth: s.key==="idxPort"?2.2:1.2,
+    }))},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:"index", intersect:false },
+      plugins:{ legend:{display:false}, tooltip:{
+        backgroundColor:"#1A1A18", titleColor:"#E8E4D8", bodyColor:"#A8A49A",
+        borderColor:"#2D5016", borderWidth:1, padding:11, cornerRadius:2,
+        callbacks:{ label: c => c.dataset.label + ": $" + c.raw.toFixed(2) }
+      }},
+      scales:{
+        x:{ grid:{display:false}, ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},maxTicksLimit:10} },
+        y:{ grid:{color:"rgba(0,0,0,0.04)"}, border:{dash:[3,3]},
+            ticks:{color:"#8A8A84",font:{family:"JetBrains Mono",size:9},callback:v=>"$"+v.toFixed(0)} }
+      }
+    }
+  });
+
+  document.getElementById("trCaveat").innerHTML =
+    `<b>Cómo leer estos números.</b> El rendimiento se calcula ponderado por tiempo, que neutraliza el efecto de cuándo se aportó dinero y es el único método comparable contra un índice. ` +
+    `Dos aclaraciones necesarias: hasta 2025 la renta fija estuvo en un pagaré de fintech, no en Cetes, y rindió alrededor de 4 puntos porcentuales por encima — ese diferencial no es replicable hoy. ` +
+    `Además, el alto porcentaje de meses positivos refleja que durante 2023 y 2024 el portafolio era mayoritariamente renta fija; una cartera con más peso en bolsa registra más meses en rojo y caídas mayores.`;
+}
+
+/* ── CAÍDAS Y RECUPERACIONES (Hoja 8) ────────────────── */
+async function fetchCaidas(){
+  const res = await fetch(CAIDAS_CSV_URL);
+  if(!res.ok) throw new Error("Hoja 8: HTTP "+res.status);
+  const rows = parseCSV(await res.text());
+  const out = [];
+  rows.forEach(r=>{
+    const ini = (r[0]||"").trim();
+    // Solo filas cuyo primer campo sea una fecha
+    const d = parseDateMX(ini);
+    if(!d || !/\d/.test(ini)) return;
+    const caida = toNum(r[2]);
+    if(isNaN(caida)) return;
+    out.push({
+      inicio: d,
+      fondo: parseDateMX(r[1]),
+      caida: Math.abs(caida) <= 1 ? caida*100 : caida, // acepta 0.073 o 7.3
+      recuperado: parseDateMX(r[3]),
+      dias: toNum(r[4]),
+      accion: (r[5]||"").trim(),
+    });
+  });
+  return out.sort((a,b)=>a.inicio-b.inicio);
+}
+
+function renderCaidas(caidas){
+  if(!caidas.length) return;
+
+  const peor = caidas.reduce((w,c)=> Math.abs(c.caida)>Math.abs(w.caida)?c:w, caidas[0]);
+  const maxDias = caidas.reduce((m,c)=> c.dias>m.dias?c:m, caidas[0]);
+  const recuperadas = caidas.filter(c=>c.recuperado).length;
+  const promDias = Math.round(caidas.reduce((s,c)=>s+c.dias,0)/caidas.length);
+
+  document.getElementById("ddStats").innerHTML = `
+    <div class="div-stat"><div class="div-stat-k">Caída más profunda</div><div class="div-stat-v down">${peor.caida.toFixed(1)}%</div></div>
+    <div class="div-stat"><div class="div-stat-k">Caídas recuperadas</div><div class="div-stat-v up">${recuperadas} de ${caidas.length}</div></div>
+    <div class="div-stat"><div class="div-stat-k">Recuperación más larga</div><div class="div-stat-v">${maxDias.dias} días</div></div>
+    <div class="div-stat"><div class="div-stat-k">Recuperación promedio</div><div class="div-stat-v">${promDias} días</div></div>`;
+
+  const maxAbs = Math.abs(peor.caida);
+  const f = d => d ? d.toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"}) : "—";
+
+  document.getElementById("ddList").innerHTML = caidas.map(c=>{
+    const barW = (Math.abs(c.caida)/maxAbs)*100;
+    return `<div class="dd-row">
+      <div class="dd-top">
+        <div class="dd-period">${f(c.inicio)} → ${f(c.recuperado)}</div>
+        <div class="dd-depth">${c.caida.toFixed(1)}%</div>
+      </div>
+      <div class="dd-bar-track"><div class="dd-bar-fill" style="width:${barW}%"></div></div>
+      <div class="dd-meta">
+        <div class="dd-meta-item">Piso: <b>${f(c.fondo)}</b></div>
+        <div class="dd-meta-item">Duración: <b>${c.dias} días</b></div>
+        <div class="dd-meta-item">Estado: <b>${c.recuperado ? "Recuperada" : "En curso"}</b></div>
+      </div>
+      ${c.accion ? `<div class="dd-action">${c.accion}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
 /* ── DIVIDENDOS ──────────────────────────────────────── */
 const DIVIDENDS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS7wSW1EDqjOG-qPdTP7VEtSvGzUhx6F7FwcwPSg3UkfrLNrUnfM55v8dR-RDOTJvdldmn9yD94DpuV/pub?gid=245611135&single=true&output=csv";
 
@@ -1281,6 +1497,14 @@ async function loadData(){
         if(excludeDividends) renderMainChart(fullHistory, activeRange);
       })
       .catch(e => console.warn("Dividendos no disponibles:", e.message));
+
+    // Track record histórico (Hoja 7) y caídas (Hoja 8) — carga independiente
+    fetchTrackRecord()
+      .then(renderTrackRecord)
+      .catch(e => console.warn("Track record no disponible:", e.message));
+    fetchCaidas()
+      .then(renderCaidas)
+      .catch(e => console.warn("Caídas no disponibles:", e.message));
   } catch(e){
     setLive(false,false);
     showError("Error al cargar datos: "+e.message+". Se reintentará en "+CONFIG.REFRESH_SECONDS+" segundos.");
